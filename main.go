@@ -34,7 +34,6 @@ func eval (source string) {
 	tokens, errs := Lox.Lexer{}.Tokenize(source);
 	if len(errs) > 0 {
 		for _, e := range errs {
-			// fmt.Println(e)
 			Lox.Error.Throw(e)
 		}
 	}
