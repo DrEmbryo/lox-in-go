@@ -1,10 +1,12 @@
 package Lox
 
+import "fmt"
+
 const (
 	// single char tokens
 	LEFT_PAREN = iota
 	RIGHT_PAREN
-	LEFT_BRACE 
+	LEFT_BRACE
 	RIGHT_BRACE
 	COMMA
 	DOT
@@ -29,7 +31,7 @@ const (
 	STRING
 	NUMBER
 
-	// keywords 
+	// keywords
 	AND
 	CLASS
 	ELSE
@@ -51,11 +53,11 @@ const (
 
 type Token struct {
 	tokenType uint8
-	lexeme string
-	literal string
+	lexeme    string
+	literal   string
 }
 
-func (token Token) Create (tokenType uint8, lexeme string, literal string) (Token) {
+func (token Token) Create(tokenType uint8, lexeme string, literal string) Token {
 	token.tokenType = tokenType
 	token.lexeme = lexeme
 	token.literal = literal
@@ -63,62 +65,97 @@ func (token Token) Create (tokenType uint8, lexeme string, literal string) (Toke
 }
 
 type Lexer struct {
-	start uint32
+	start   uint32
 	current uint32
-	line uint32
+	line    uint32
 }
 
-func (lexer *Lexer) Next (source []rune) rune {
+func (lexer *Lexer) Next(source []rune) rune {
 	nextChar := source[lexer.current]
-	lexer.current ++
+	lexer.current++
 	return nextChar
 }
 
-
 func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
-	lexErrors := make([]Error,0)
+	lexErrors := make([]Error, 0)
 	tokens := make([]Token, 10)
+	sourceStr := []rune(source)
 	lexer.start = 1
 	lexer.current = 0
 	lexer.line = 0
 
-	for  {
-		char := lexer.Next([]rune(source))
+	for {
+		char := lexer.Next(sourceStr)
 		if lexer.current >= uint32(len(source)) {
 			break
 		}
-
+		fmt.Println(string(char))
+		var tokenType uint8
 		switch char {
 		case '(':
-			tokens = append(tokens, Token{}.Create(LEFT_PAREN, "", ""))
+			tokenType = LEFT_PAREN
 		case ')':
-			tokens = append(tokens, Token{}.Create(RIGHT_PAREN, "", ""))
+			tokenType = RIGHT_PAREN
 		case '{':
-			tokens = append(tokens, Token{}.Create(LEFT_BRACE, "", ""))
+			tokenType = LEFT_BRACE
 		case '}':
-			tokens = append(tokens, Token{}.Create(RIGHT_BRACE, "", ""))
+			tokenType = RIGHT_BRACE
 		case ',':
-			tokens = append(tokens, Token{}.Create(COMMA, "", ""))
+			tokenType = COMMA
 		case '.':
-			tokens = append(tokens, Token{}.Create(DOT, "", ""))
+			tokenType = DOT
 		case '-':
-			tokens = append(tokens, Token{}.Create(MINUS, "", ""))
+			tokenType = MINUS
 		case '+':
-			tokens = append(tokens, Token{}.Create(PLUS, "", ""))
+			tokenType = PLUS
 		case ';':
-			tokens = append(tokens, Token{}.Create(SEMICOLON, "", ""))
+			tokenType = SEMICOLON
 		case '*':
-			tokens = append(tokens, Token{}.Create(STAR, "", ""))
+			tokenType = STAR
+		case '/':
+			if lexer.Next(sourceStr) == '/' {
+				// double slash comment support
+
+			} else {
+				tokenType = SLASH
+			}
+		case '=':
+			
+			if lexer.Next(sourceStr) == '=' {
+				tokenType = EQUAL_EQUAL
+			} else {
+				tokenType = EQUAL
+			}
+		case '!':
+			if lexer.Next(sourceStr) == '=' {
+				tokenType = BANG_EQUAL
+			} else {
+				tokenType = BANG
+			}
+		case '<':
+			if lexer.Next(sourceStr) == '=' {
+				tokenType = LESS_EQUAL
+			} else {
+				tokenType = EQUAL
+			}
+		case '>':
+			if lexer.Next(sourceStr) == '=' {
+				tokenType = GREATER_EQUAL
+			} else {
+				tokenType = EQUAL
+			}
 		default:
-			lexErrors = append(lexErrors, Error{ line: lexer.line, position: lexer.current, message: "Unidentified token"})
+			lexErrors = append(lexErrors, Error{line: lexer.line, position: lexer.current, message: "Unidentified token"})
+			tokenType = 0
 		}
 
+		tokens = append(tokens, Token{}.Create(tokenType, "", ""))
 	}
-	
-	tokens = append(tokens, Token{ 
+
+	tokens = append(tokens, Token{
 		tokenType: EOF,
-		lexeme: "",
-		literal: "",
+		lexeme:    "",
+		literal:   "",
 	})
 	return tokens, lexErrors
 }
