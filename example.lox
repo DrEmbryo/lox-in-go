@@ -1,3 +1,9 @@
-var a = 0;
-var b = 1;
-a != b;
+*/  
+    this 
+    is 
+    multileni 
+    comment
+/*
+// this is single line comment
+(( )){} // grouping stuff
+!*+-/=<> <= == // operators

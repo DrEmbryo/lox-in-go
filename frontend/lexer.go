@@ -1,7 +1,5 @@
 package Lox
 
-import "fmt"
-
 const (
 	// single char tokens
 	LEFT_PAREN = iota
@@ -68,28 +66,43 @@ type Lexer struct {
 	start   uint32
 	current uint32
 	line    uint32
+	source  []rune
 }
 
-func (lexer *Lexer) Next(source []rune) rune {
-	nextChar := source[lexer.current]
-	lexer.current++
-	return nextChar
+func (lexer *Lexer) init(source []rune, start uint32, current uint32, line uint32){
+	lexer.start = start
+	lexer.current = current
+	lexer.line = line
+	lexer.source = source
+}
+
+func (lexer *Lexer) next() rune {
+	if lexer.current < uint32(len(lexer.source)) {
+		nextChar := lexer.source[lexer.current]
+		lexer.current++
+		return nextChar
+	}
+	return 0
+}
+
+func (lexer Lexer) lookahead(offset int) rune {
+	if lexer.current < uint32(len(lexer.source) + offset) {
+		return lexer.source[lexer.current]
+	}
+	return 0
 }
 
 func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
-	lexErrors := make([]Error, 0)
 	tokens := make([]Token, 10)
-	sourceStr := []rune(source)
-	lexer.start = 1
-	lexer.current = 0
-	lexer.line = 0
+	lexer.init([]rune(source), 1, 0, 0)
+	lexErrors := make([]Error, 0)
 
 	for {
-		char := lexer.Next(sourceStr)
+		char := lexer.next()
 		if lexer.current >= uint32(len(source)) {
 			break
 		}
-		fmt.Println(string(char))
+		// fmt.Println(string(char))
 		var tokenType uint8
 		switch char {
 		case '(':
@@ -111,39 +124,65 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 		case ';':
 			tokenType = SEMICOLON
 		case '*':
-			tokenType = STAR
+			lookahead := lexer.lookahead(0)
+			if lookahead == '/' {
+				// multiline comment skip
+				for {	
+					next := lexer.next()
+					lookup := lexer.lookahead(1)
+					if next == 0 || lookup == 0 {
+						break
+					} 
+					if next == '/' && lookup == '*' {
+						lexer.next()
+						break
+					}
+				}
+			} else {
+				tokenType = STAR
+			}
 		case '/':
-			if lexer.Next(sourceStr) == '/' {
-				// double slash comment support
-
+			lookahead := lexer.lookahead(0)
+			if lookahead == '/' {
+				// comment line skip
+				for {
+					if lexer.next() == '\n' || lexer.next() == 0{
+						break
+					}
+				}
 			} else {
 				tokenType = SLASH
 			}
 		case '=':
 			
-			if lexer.Next(sourceStr) == '=' {
+			if lexer.next() == '=' {
 				tokenType = EQUAL_EQUAL
 			} else {
 				tokenType = EQUAL
 			}
 		case '!':
-			if lexer.Next(sourceStr) == '=' {
+			if lexer.next() == '=' {
 				tokenType = BANG_EQUAL
 			} else {
 				tokenType = BANG
 			}
 		case '<':
-			if lexer.Next(sourceStr) == '=' {
+			if lexer.next() == '=' {
 				tokenType = LESS_EQUAL
 			} else {
 				tokenType = EQUAL
 			}
 		case '>':
-			if lexer.Next(sourceStr) == '=' {
+			if lexer.next() == '=' {
 				tokenType = GREATER_EQUAL
 			} else {
 				tokenType = EQUAL
 			}
+		case ' ':
+		case '\r':
+		case '\t':
+		case '\n': 
+		lexer.line++
 		default:
 			lexErrors = append(lexErrors, Error{line: lexer.line, position: lexer.current, message: "Unidentified token"})
 			tokenType = 0
