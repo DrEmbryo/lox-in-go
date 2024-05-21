@@ -1,5 +1,7 @@
 package Lox
 
+import "fmt"
+
 const (
 	// single char tokens
 	LEFT_PAREN = iota
@@ -50,12 +52,12 @@ const (
 )
 
 type Token struct {
-	tokenType uint8
+	tokenType int8
 	lexeme    string
 	literal   string
 }
 
-func (token Token) Create(tokenType uint8, lexeme string, literal string) Token {
+func (token Token) Create(tokenType int8, lexeme string, literal string) Token {
 	token.tokenType = tokenType
 	token.lexeme = lexeme
 	token.literal = literal
@@ -69,7 +71,7 @@ type Lexer struct {
 	source  []rune
 }
 
-func (lexer *Lexer) init(source []rune, start uint32, current uint32, line uint32){
+func (lexer *Lexer) init(source []rune, start uint32, current uint32, line uint32) {
 	lexer.start = start
 	lexer.current = current
 	lexer.line = line
@@ -85,8 +87,9 @@ func (lexer *Lexer) next() rune {
 	return 0
 }
 
-func (lexer Lexer) lookahead(offset int) rune {
-	if lexer.current < uint32(len(lexer.source) + offset) {
+// TODO: seems like its causing issues, should be runeCount?
+func (lexer Lexer) lookahead() rune {
+	if lexer.current < uint32(len(lexer.source)) {
 		return lexer.source[lexer.current]
 	}
 	return 0
@@ -102,8 +105,8 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 		if lexer.current >= uint32(len(source)) {
 			break
 		}
-		// fmt.Println(string(char))
-		var tokenType uint8
+
+		var tokenType int8
 		switch char {
 		case '(':
 			tokenType = LEFT_PAREN
@@ -124,17 +127,22 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 		case ';':
 			tokenType = SEMICOLON
 		case '*':
-			lookahead := lexer.lookahead(0)
-			if lookahead == '/' {
-				// multiline comment skip
-				for {	
+			// multiline comment 
+			if lexer.lookahead() == '/' {
+				for {
+					// TODO: something is wrong with \n count inside this loop
 					next := lexer.next()
-					lookup := lexer.lookahead(1)
+					fmt.Println(string(next))
+					lookup := lexer.lookahead()
+					fmt.Println(string(lookup))
+					if lookup == '\n' {
+						lexer.line++
+					}
 					if next == 0 || lookup == 0 {
 						break
-					} 
+					}
 					if next == '/' && lookup == '*' {
-						lexer.next()
+						lexer.next() 
 						break
 					}
 				}
@@ -142,11 +150,11 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 				tokenType = STAR
 			}
 		case '/':
-			lookahead := lexer.lookahead(0)
-			if lookahead == '/' {
+			if lexer.lookahead() == '/' {
 				// comment line skip
 				for {
-					if lexer.next() == '\n' || lexer.next() == 0{
+					if lexer.next() == '\n' || lexer.next() == 0 {
+						lexer.line++
 						break
 					}
 				}
@@ -154,7 +162,6 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 				tokenType = SLASH
 			}
 		case '=':
-			
 			if lexer.next() == '=' {
 				tokenType = EQUAL_EQUAL
 			} else {
@@ -181,20 +188,16 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 		case ' ':
 		case '\r':
 		case '\t':
-		case '\n': 
-		lexer.line++
+		case '\n':
+			lexer.line++
 		default:
-			lexErrors = append(lexErrors, Error{line: lexer.line, position: lexer.current, message: "Unidentified token"})
-			tokenType = 0
+			lexErrors = append(lexErrors, Error{line: lexer.line, position: lexer.current, message: fmt.Sprintf("Unknown token: %c", char)})
+			tokenType = -1
 		}
 
 		tokens = append(tokens, Token{}.Create(tokenType, "", ""))
 	}
 
-	tokens = append(tokens, Token{
-		tokenType: EOF,
-		lexeme:    "",
-		literal:   "",
-	})
+	tokens = append(tokens, Token{}.Create(EOF, "", ""))
 	return tokens, lexErrors
 }
