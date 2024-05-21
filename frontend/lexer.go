@@ -87,7 +87,6 @@ func (lexer *Lexer) next() rune {
 	return 0
 }
 
-// TODO: seems like its causing issues, should be runeCount?
 func (lexer Lexer) lookahead() rune {
 	if lexer.current < uint32(len(lexer.source)) {
 		return lexer.source[lexer.current]
@@ -127,7 +126,6 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 		case ';':
 			tokenType = SEMICOLON
 		case '*':
-			// multiline comment 
 			if lexer.lookahead() == '/' {
 				lexer.current++
 				for  {
