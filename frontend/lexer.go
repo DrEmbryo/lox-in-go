@@ -97,16 +97,16 @@ func (lexer Lexer) lookahead() rune {
 
 func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 	tokens := make([]Token, 10)
-	lexer.init([]rune(source), 1, 0, 0)
+	lexer.init([]rune(source), 1, 0, 1)
 	lexErrors := make([]Error, 0)
 
 	for {
+		var tokenType int8
 		char := lexer.next()
-		if lexer.current >= uint32(len(source)) {
+		if char == 0 {
 			break
 		}
 
-		var tokenType int8
 		switch char {
 		case '(':
 			tokenType = LEFT_PAREN
@@ -129,20 +129,17 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 		case '*':
 			// multiline comment 
 			if lexer.lookahead() == '/' {
-				for {
-					// TODO: something is wrong with \n count inside this loop
-					next := lexer.next()
-					fmt.Println(string(next))
-					lookup := lexer.lookahead()
-					fmt.Println(string(lookup))
-					if lookup == '\n' {
-						lexer.line++
-					}
-					if next == 0 || lookup == 0 {
+				lexer.current++
+				for  {
+					char = lexer.next();
+					if char == 0 {
 						break
 					}
-					if next == '/' && lookup == '*' {
-						lexer.next() 
+					if char == '\n' {
+						lexer.line++
+					}
+					if char == '/' && lexer.lookahead() == '*' {
+						lexer.next()
 						break
 					}
 				}
@@ -151,7 +148,6 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 			}
 		case '/':
 			if lexer.lookahead() == '/' {
-				// comment line skip
 				for {
 					if lexer.next() == '\n' || lexer.next() == 0 {
 						lexer.line++
@@ -162,26 +158,30 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 				tokenType = SLASH
 			}
 		case '=':
-			if lexer.next() == '=' {
+			if lexer.lookahead() == '=' {
 				tokenType = EQUAL_EQUAL
+				lexer.next()
 			} else {
 				tokenType = EQUAL
 			}
 		case '!':
-			if lexer.next() == '=' {
+			if lexer.lookahead() == '=' {
 				tokenType = BANG_EQUAL
+				lexer.next()
 			} else {
 				tokenType = BANG
 			}
 		case '<':
-			if lexer.next() == '=' {
+			if lexer.lookahead() == '=' {
 				tokenType = LESS_EQUAL
+				lexer.next()
 			} else {
 				tokenType = EQUAL
 			}
 		case '>':
-			if lexer.next() == '=' {
+			if lexer.lookahead() == '=' {
 				tokenType = GREATER_EQUAL
+				lexer.next()
 			} else {
 				tokenType = EQUAL
 			}
@@ -195,7 +195,9 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 			tokenType = -1
 		}
 
-		tokens = append(tokens, Token{}.Create(tokenType, "", ""))
+		if tokenType != -1 {
+			tokens = append(tokens, Token{}.Create(tokenType, "", ""))
+		}
 	}
 
 	tokens = append(tokens, Token{}.Create(EOF, "", ""))
