@@ -110,26 +110,26 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 			break
 		}
 
-		switch char {
-		case '(':
+		switch {
+		case char == '(':
 			tokenType = LEFT_PAREN
-		case ')':
+		case char == ')':
 			tokenType = RIGHT_PAREN
-		case '{':
+		case char == '{':
 			tokenType = LEFT_BRACE
-		case '}':
+		case char == '}':
 			tokenType = RIGHT_BRACE
-		case ',':
+		case char == ',':
 			tokenType = COMMA
-		case '.':
+		case char == '.':
 			tokenType = DOT
-		case '-':
+		case char == '-':
 			tokenType = MINUS
-		case '+':
+		case char == '+':
 			tokenType = PLUS
-		case ';':
+		case char == ';':
 			tokenType = SEMICOLON
-		case '*':
+		case char == '*':
 			if lexer.lookahead() == '/' {
 				lexer.current++
 				for  {
@@ -148,7 +148,7 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 			} else {
 				tokenType = STAR
 			}
-		case '/':
+		case char == '/':
 			if lexer.lookahead() == '/' {
 				lexer.current++
 				for {
@@ -161,39 +161,38 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 						break
 					}
 				}
-				fmt.Println(string(char))
 			} else {
 				tokenType = SLASH
 			}
-		case '=':
+		case char == '=':
 			if lexer.lookahead() == '=' {
 				tokenType = EQUAL_EQUAL
 				lexer.next()
 			} else {
 				tokenType = EQUAL
 			}
-		case '!':
+		case char == '!':
 			if lexer.lookahead() == '=' {
 				tokenType = BANG_EQUAL
 				lexer.next()
 			} else {
 				tokenType = BANG
 			}
-		case '<':
+		case char == '<':
 			if lexer.lookahead() == '=' {
 				tokenType = LESS_EQUAL
 				lexer.next()
 			} else {
 				tokenType = EQUAL
 			}
-		case '>':
+		case char == '>':
 			if lexer.lookahead() == '=' {
 				tokenType = GREATER_EQUAL
 				lexer.next()
 			} else {
 				tokenType = EQUAL
 			}
-		case '"':
+		case char == '"':
 			startLine := lexer.current
 			buff := bytes.NewBufferString("")
 			for {
@@ -214,10 +213,32 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 					break
 				}
 			}
-		case ' ':
-		case '\r':
-		case '\t':
-		case '\n':
+		case parseDigit(char):
+			tokenType = NUMBER
+			buff := bytes.NewBufferString("")
+			for {
+				if !parseDigit(char) {
+					break
+				}
+				buff.WriteRune(char)
+				char = lexer.next()
+			}
+			if char == '.' && parseDigit(lexer.lookahead()){
+				buff.WriteRune(char)
+				char = lexer.next()
+				for {
+					if !parseDigit(char) {
+						break
+					}
+					buff.WriteRune(char)
+					char = lexer.next()
+				}
+			} 
+			tokenValue = buff.String()
+		case char == ' ':
+		case char == '\r':
+		case char == '\t':
+		case char == '\n':
 			lexer.line++
 		default:
 			lexErrors = append(lexErrors, Error{line: lexer.line, position: lexer.current, message: fmt.Sprintf("Unknown token: %c", char)})
@@ -230,4 +251,8 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 
 	tokens = append(tokens, Token{}.Create(EOF, "", ""))
 	return tokens, lexErrors
+}
+
+func parseDigit(char rune) bool {
+	return char >= '0' && char <= '9';
 }

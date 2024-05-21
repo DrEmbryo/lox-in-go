@@ -7,5 +7,5 @@ comment
 // this is single line comment
 (( )){} // grouping stuff
 !*+-/=<> <= == // operators
-1
+123.12
 "string value"
