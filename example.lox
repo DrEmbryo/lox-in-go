@@ -8,3 +8,4 @@ comment
 (( )){} // grouping stuff
 !*+-/=<> <= == // operators
 1
+"string value"

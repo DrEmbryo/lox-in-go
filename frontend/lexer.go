@@ -1,6 +1,9 @@
 package Lox
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 const (
 	// single char tokens
@@ -100,7 +103,8 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 	lexErrors := make([]Error, 0)
 
 	for {
-		var tokenType int8
+		tokenType := -1
+		tokenValue := ""
 		char := lexer.next()
 		if char == 0 {
 			break
@@ -146,12 +150,18 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 			}
 		case '/':
 			if lexer.lookahead() == '/' {
+				lexer.current++
 				for {
-					if lexer.next() == '\n' || lexer.next() == 0 {
+					char = lexer.next()
+					if char == 0 {
+						break
+					}
+					if char == '\n' {
 						lexer.line++
 						break
 					}
 				}
+				fmt.Println(string(char))
 			} else {
 				tokenType = SLASH
 			}
@@ -183,6 +193,27 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 			} else {
 				tokenType = EQUAL
 			}
+		case '"':
+			startLine := lexer.current
+			buff := bytes.NewBufferString("")
+			for {
+				char = lexer.next()
+				if char == 0 {
+					tokenType = -1
+					lexErrors = append(lexErrors, Error{line: lexer.line, position: lexer.current, message: fmt.Sprintf("Unterminated string at : %c", startLine)})
+					break
+				}
+				if char != '"' {
+					if char == '\n' { 
+						lexer.line++ 
+					}
+					buff.WriteRune(char)
+				} else {
+					tokenType = STRING
+					tokenValue = buff.String()
+					break
+				}
+			}
 		case ' ':
 		case '\r':
 		case '\t':
@@ -192,9 +223,8 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 			lexErrors = append(lexErrors, Error{line: lexer.line, position: lexer.current, message: fmt.Sprintf("Unknown token: %c", char)})
 			tokenType = -1
 		}
-
 		if tokenType != -1 {
-			tokens = append(tokens, Token{}.Create(tokenType, "", ""))
+			tokens = append(tokens, Token{}.Create(int8(tokenType), tokenValue, ""))
 		}
 	}
 
