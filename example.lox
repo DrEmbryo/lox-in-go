@@ -1,11 +1,12 @@
-*/
+/*
 this
 is
 multiline
 comment
-/*
+*/
 // this is single line comment
 (( )){} // grouping stuff
 !*+-/=<> <= == // operators
 123.12
 "string value"
+var a = 1

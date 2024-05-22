@@ -54,6 +54,25 @@ const (
 	EOF
 )
 
+var KEYWORDS = map[string]int{
+	"and":    AND,
+	"class":  CLASS,
+	"else":   ELSE,
+	"false":  FALSE,
+	"for":    FOR,
+	"func":   FUNC,
+	"if":     IF,
+	"null":   NULL,
+	"or":     OR,
+	"print":  PRINT,
+	"return": RETURN,
+	"super":  SUPER,
+	"this":   THIS,
+	"true":   TRUE,
+	"var":    VAR,
+	"while":  WHILE,
+}
+
 type Token struct {
 	tokenType int8
 	lexeme    string
@@ -130,24 +149,7 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 		case char == ';':
 			tokenType = SEMICOLON
 		case char == '*':
-			if lexer.lookahead() == '/' {
-				lexer.current++
-				for  {
-					char = lexer.next();
-					if char == 0 {
-						break
-					}
-					if char == '\n' {
-						lexer.line++
-					}
-					if char == '/' && lexer.lookahead() == '*' {
-						lexer.next()
-						break
-					}
-				}
-			} else {
-				tokenType = STAR
-			}
+			tokenType = STAR
 		case char == '/':
 			if lexer.lookahead() == '/' {
 				lexer.current++
@@ -158,6 +160,21 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 					}
 					if char == '\n' {
 						lexer.line++
+						break
+					}
+				}
+			}  else if lexer.lookahead() == '/' {
+				lexer.current++
+				for {
+					char = lexer.next()
+					if char == 0 {
+						break
+					}
+					if char == '\n' {
+						lexer.line++
+					}
+					if char == '*' && lexer.lookahead() == '/' {
+						lexer.next()
 						break
 					}
 				}
@@ -203,8 +220,8 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 					break
 				}
 				if char != '"' {
-					if char == '\n' { 
-						lexer.line++ 
+					if char == '\n' {
+						lexer.line++
 					}
 					buff.WriteRune(char)
 				} else {
@@ -223,7 +240,7 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 				buff.WriteRune(char)
 				char = lexer.next()
 			}
-			if char == '.' && parseDigit(lexer.lookahead()){
+			if char == '.' && parseDigit(lexer.lookahead()) {
 				buff.WriteRune(char)
 				char = lexer.next()
 				for {
@@ -233,8 +250,24 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 					buff.WriteRune(char)
 					char = lexer.next()
 				}
-			} 
+			}
 			tokenValue = buff.String()
+		case parseChar(char):
+			buff := bytes.NewBufferString("")
+			for {
+				if !(parseChar(char) || parseDigit(char)) {
+					break
+				}
+				buff.WriteRune(char)
+				char = lexer.next()
+			}
+			tokenValue = buff.String()
+			keyword, ok := KEYWORDS[tokenValue]
+			if ok {
+				tokenType = keyword
+			} else {
+				tokenType = IDENTIFIER
+			}
 		case char == ' ':
 		case char == '\r':
 		case char == '\t':
@@ -254,5 +287,11 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 }
 
 func parseDigit(char rune) bool {
-	return char >= '0' && char <= '9';
+	return char >= '0' && char <= '9'
+}
+
+func parseChar(char rune) bool {
+	return (char >= 'a' && char <= 'z') ||
+		(char >= 'A' && char <= 'Z') ||
+		char == '_'
 }
