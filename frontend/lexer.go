@@ -3,6 +3,7 @@ package Lox
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 )
 
 const (
@@ -163,7 +164,7 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 						break
 					}
 				}
-			}  else if lexer.lookahead() == '/' {
+			}  else if lexer.lookahead() == '*' {
 				lexer.current++
 				for {
 					char = lexer.next()
@@ -287,11 +288,11 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 }
 
 func parseDigit(char rune) bool {
-	return char >= '0' && char <= '9'
+	expr, _ := regexp.Compile("[0-9]")
+	return expr.MatchString(string(char))
 }
 
 func parseChar(char rune) bool {
-	return (char >= 'a' && char <= 'z') ||
-		(char >= 'A' && char <= 'Z') ||
-		char == '_'
+	expr, _ := regexp.Compile("[A-Za-z_]")
+	return expr.MatchString(string(char))
 }
