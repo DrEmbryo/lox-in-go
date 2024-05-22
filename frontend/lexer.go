@@ -6,87 +6,6 @@ import (
 	"regexp"
 )
 
-const (
-	// single char tokens
-	LEFT_PAREN = iota
-	RIGHT_PAREN
-	LEFT_BRACE
-	RIGHT_BRACE
-	COMMA
-	DOT
-	MINUS
-	PLUS
-	SEMICOLON
-	SLASH
-	STAR
-
-	// multi char tokens
-	BANG
-	BANG_EQUAL
-	EQUAL
-	EQUAL_EQUAL
-	GREATER
-	GREATER_EQUAL
-	LESS
-	LESS_EQUAL
-
-	// literals
-	IDENTIFIER
-	STRING
-	NUMBER
-
-	// keywords
-	AND
-	CLASS
-	ELSE
-	FALSE
-	FUNC
-	FOR
-	IF
-	NULL
-	OR
-	PRINT
-	RETURN
-	SUPER
-	THIS
-	TRUE
-	VAR
-	WHILE
-	EOF
-)
-
-var KEYWORDS = map[string]int{
-	"and":    AND,
-	"class":  CLASS,
-	"else":   ELSE,
-	"false":  FALSE,
-	"for":    FOR,
-	"func":   FUNC,
-	"if":     IF,
-	"null":   NULL,
-	"or":     OR,
-	"print":  PRINT,
-	"return": RETURN,
-	"super":  SUPER,
-	"this":   THIS,
-	"true":   TRUE,
-	"var":    VAR,
-	"while":  WHILE,
-}
-
-type Token struct {
-	tokenType int8
-	lexeme    string
-	literal   string
-}
-
-func (token Token) Create(tokenType int8, lexeme string, literal string) Token {
-	token.tokenType = tokenType
-	token.lexeme = lexeme
-	token.literal = literal
-	return token
-}
-
 type Lexer struct {
 	start   uint32
 	current uint32
@@ -131,6 +50,7 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 		}
 
 		switch {
+		//handle single character tokens
 		case char == '(':
 			tokenType = LEFT_PAREN
 		case char == ')':
@@ -152,36 +72,16 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 		case char == '*':
 			tokenType = STAR
 		case char == '/':
-			if lexer.lookahead() == '/' {
-				lexer.current++
-				for {
-					char = lexer.next()
-					if char == 0 {
-						break
-					}
-					if char == '\n' {
-						lexer.line++
-						break
-					}
-				}
-			}  else if lexer.lookahead() == '*' {
-				lexer.current++
-				for {
-					char = lexer.next()
-					if char == 0 {
-						break
-					}
-					if char == '\n' {
-						lexer.line++
-					}
-					if char == '*' && lexer.lookahead() == '/' {
-						lexer.next()
-						break
-					}
-				}
-			} else {
+			// handle comments
+			switch {
+			case lexer.lookahead() == '/':
+				lexer.handleSingleLineComments()
+			case lexer.lookahead() == '*':
+				lexer.handleMultilineLineComments()
+			default:
 				tokenType = SLASH
 			}
+		//handle multi character tokens
 		case char == '=':
 			if lexer.lookahead() == '=' {
 				tokenType = EQUAL_EQUAL
@@ -210,68 +110,19 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 			} else {
 				tokenType = EQUAL
 			}
+		// handle strings
 		case char == '"':
-			startLine := lexer.current
-			buff := bytes.NewBufferString("")
-			for {
-				char = lexer.next()
-				if char == 0 {
-					tokenType = -1
-					lexErrors = append(lexErrors, Error{line: lexer.line, position: lexer.current, message: fmt.Sprintf("Unterminated string at : %c", startLine)})
-					break
-				}
-				if char != '"' {
-					if char == '\n' {
-						lexer.line++
-					}
-					buff.WriteRune(char)
-				} else {
-					tokenType = STRING
-					tokenValue = buff.String()
-					break
-				}
-			}
+			var err Error
+			tokenType, tokenValue, err = lexer.handleStrings()
+			lexErrors = append(lexErrors, err)
+		// handle numeric values
 		case parseDigit(char):
-			tokenType = NUMBER
-			buff := bytes.NewBufferString("")
-			for {
-				if !parseDigit(char) {
-					break
-				}
-				buff.WriteRune(char)
-				char = lexer.next()
-			}
-			if char == '.' && parseDigit(lexer.lookahead()) {
-				buff.WriteRune(char)
-				char = lexer.next()
-				for {
-					if !parseDigit(char) {
-						break
-					}
-					buff.WriteRune(char)
-					char = lexer.next()
-				}
-			}
-			tokenValue = buff.String()
+			tokenType, tokenValue = lexer.handleNumerics(char)
+		// handle keywords
 		case parseChar(char):
-			buff := bytes.NewBufferString("")
-			for {
-				if !(parseChar(char) || parseDigit(char)) {
-					break
-				}
-				buff.WriteRune(char)
-				char = lexer.next()
-			}
-			tokenValue = buff.String()
-			keyword, ok := KEYWORDS[tokenValue]
-			if ok {
-				tokenType = keyword
-			} else {
-				tokenType = IDENTIFIER
-			}
-		case char == ' ':
-		case char == '\r':
-		case char == '\t':
+			tokenType, tokenValue = lexer.handleIdentifiers(char)
+		//  handle skippable characters 
+		case parseSkippable(char):
 		case char == '\n':
 			lexer.line++
 		default:
@@ -287,6 +138,107 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []Error) {
 	return tokens, lexErrors
 }
 
+func (lexer *Lexer) handleSingleLineComments() {
+	lexer.current++
+	for {
+		char := lexer.next()
+		if char == 0 {
+			break
+		}
+		if char == '\n' {
+			lexer.line++
+			break
+		}
+	}
+}
+
+func (lexer *Lexer) handleMultilineLineComments() {
+	lexer.current++
+	for {
+		char := lexer.next()
+		if char == 0 {
+			break
+		}
+		if char == '\n' {
+			lexer.line++
+		}
+		if char == '*' && lexer.lookahead() == '/' {
+			lexer.next()
+			break
+		}
+	}
+}
+
+func (lexer *Lexer) handleStrings() (int, string, Error) {
+	var tokenType int
+	var tokenValue string
+	var strError Error
+	startLine := lexer.current
+	buff := bytes.NewBufferString("")
+	for {
+		char := lexer.next()
+		if char == 0 {
+			tokenType = -1
+			strError = Error{line: lexer.line, position: lexer.current, message: fmt.Sprintf("Unterminated string at : %c", startLine)}
+			break
+		}
+		if char != '"' {
+			if char == '\n' {
+				lexer.line++
+			}
+			buff.WriteRune(char)
+		} else {
+			tokenType = STRING
+			tokenValue = buff.String()
+			break
+		}
+	}
+	return tokenType, tokenValue, strError
+}
+
+func (lexer *Lexer) handleNumerics(char rune) (int, string) {
+	buff := bytes.NewBufferString("")
+	for {
+		if !parseDigit(char) {
+			break
+		}
+		buff.WriteRune(char)
+		char = lexer.next()
+	}
+	if char == '.' && parseDigit(lexer.lookahead()) {
+		buff.WriteRune(char)
+		char = lexer.next()
+		for {
+			if !parseDigit(char) {
+				break
+			}
+			buff.WriteRune(char)
+			char = lexer.next()
+		}
+	}
+	return NUMBER, buff.String()
+}
+
+func (lexer *Lexer) handleIdentifiers(char rune) (int, string) {
+	var tokenType int
+	buff := bytes.NewBufferString("")
+	for {
+		if !(parseChar(char) || parseDigit(char)) {
+			break
+		}
+		buff.WriteRune(char)
+		char = lexer.next()
+	}
+	tokenValue := buff.String()
+	keyword, ok := KEYWORDS[tokenValue]
+	if ok {
+		tokenType = keyword
+	} else {
+		tokenType = IDENTIFIER
+	}
+	return tokenType, tokenValue
+}
+
 func parseDigit(char rune) bool {
 	expr, _ := regexp.Compile("[0-9]")
 	return expr.MatchString(string(char))
@@ -294,5 +246,10 @@ func parseDigit(char rune) bool {
 
 func parseChar(char rune) bool {
 	expr, _ := regexp.Compile("[A-Za-z_]")
+	return expr.MatchString(string(char))
+}
+
+func parseSkippable(char rune) bool {
+	expr, _ := regexp.Compile("[\t\r ]*")
 	return expr.MatchString(string(char))
 }
