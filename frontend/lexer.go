@@ -30,7 +30,7 @@ func (lexer *Lexer) next() rune {
 	return 0
 }
 
-func (lexer Lexer) lookahead() rune {
+func (lexer *Lexer) lookahead() rune {
 	if lexer.current < uint32(len(lexer.source)) {
 		return lexer.source[lexer.current]
 	}
@@ -43,6 +43,7 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LoxError) {
 	lexErrors := make([]LoxError, 0)
 
 	for {
+		var err error
 		tokenType := -1
 		tokenValue := ""
 		char := lexer.next()
@@ -86,35 +87,34 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LoxError) {
 		case char == '=':
 			if lexer.lookahead() == '=' {
 				tokenType = EQUAL_EQUAL
-				lexer.next()
+				lexer.current++
 			} else {
 				tokenType = EQUAL
 			}
 		case char == '!':
 			if lexer.lookahead() == '=' {
 				tokenType = BANG_EQUAL
-				lexer.next()
+				lexer.current++
 			} else {
 				tokenType = BANG
 			}
 		case char == '<':
 			if lexer.lookahead() == '=' {
 				tokenType = LESS_EQUAL
-				lexer.next()
+				lexer.current++
 			} else {
 				tokenType = EQUAL
 			}
 		case char == '>':
 			if lexer.lookahead() == '=' {
 				tokenType = GREATER_EQUAL
-				lexer.next()
+				lexer.current++
 			} else {
 				tokenType = EQUAL
 			}
 		// handle strings
 		case char == '"':
 			var lerr LoxError
-			var err error
 			tokenType, tokenValue, err = lexer.handleStrings(&char)
 			if err != nil && errors.As(err, &lerr) {
 				lexErrors = append(lexErrors, lerr)
@@ -221,7 +221,6 @@ func (lexer *Lexer) handleNumerics(char *rune) (int, string) {
 }
 
 func (lexer *Lexer) handleIdentifiers(char *rune) (int, string) {
-	var tokenType int
 	buff := bytes.NewBufferString("")
 	for {
 		if !(parseChar(*char) || parseDigit(*char)) {
@@ -233,11 +232,9 @@ func (lexer *Lexer) handleIdentifiers(char *rune) (int, string) {
 	tokenValue := buff.String()
 	keyword, ok := KEYWORDS[tokenValue]
 	if ok {
-		tokenType = keyword
-	} else {
-		tokenType = IDENTIFIER
-	}
-	return tokenType, tokenValue
+		return keyword, tokenValue
+	} 
+	return IDENTIFIER, tokenValue
 }
 
 func parseDigit(char rune) bool {
