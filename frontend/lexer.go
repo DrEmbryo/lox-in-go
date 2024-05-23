@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 )
 
 type Lexer struct {
@@ -45,7 +46,7 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LoxError) {
 	for {
 		var err error
 		tokenType := -1
-		tokenValue := ""
+		var tokenValue interface{}
 		char := lexer.next()
 		if char == 0 {
 			break
@@ -130,15 +131,19 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LoxError) {
 		case char == '\n':
 			lexer.line++
 		default:
-			lexErrors = append(lexErrors, LoxError{line: lexer.line, position: lexer.current, message: fmt.Sprintf("Unknown token: %c", char)})
+			lexErrors = append(lexErrors, LoxError{line: lexer.line, position: lexer.current, stage: "lexer", message: fmt.Sprintf("Unknown token: %c", char)})
 			tokenType = -1
 		}
 		if tokenType != -1 {
-			tokens = append(tokens, Token{}.Create(int8(tokenType), tokenValue, ""))
+			if value, ok := tokenValue.(string); ok {
+				tokens = append(tokens, Token{tokenType: int8(tokenType), lexeme: value })
+			} else {
+				lexErrors = append(lexErrors, LoxError{line: lexer.line, position: lexer.current, stage: "lexer", message: "Unknown to cast balue to string"})	
+			}
 		}
 	}
 
-	tokens = append(tokens, Token{}.Create(EOF, "", ""))
+	tokens = append(tokens, Token{tokenType: EOF})
 	return tokens, lexErrors
 }
 
@@ -181,7 +186,7 @@ func (lexer *Lexer) handleStrings(char *rune) (int, string, error) {
 		*char = lexer.next()
 		if *char == 0 {
 			tokenType = -1
-			return tokenType, tokenValue, LoxError{line: lexer.line, position: lexer.current, message: "Unterminated string"}
+			return tokenType, tokenValue, LoxError{line: lexer.line, position: lexer.current, stage: "lexer", message: "Unterminated string"}
 		}
 		if *char != '"' {
 			if *char == '\n' {
@@ -197,7 +202,7 @@ func (lexer *Lexer) handleStrings(char *rune) (int, string, error) {
 	return tokenType, tokenValue, nil
 }
 
-func (lexer *Lexer) handleNumerics(char *rune) (int, string) {
+func (lexer *Lexer) handleNumerics(char *rune) (int, float64) {
 	buff := bytes.NewBufferString("")
 	for {
 		if !parseDigit(*char) {
@@ -217,7 +222,8 @@ func (lexer *Lexer) handleNumerics(char *rune) (int, string) {
 			*char = lexer.next()
 		}
 	}
-	return NUMBER, buff.String()
+	value, _ := strconv.ParseFloat(buff.String(), 32)
+	return NUMBER, value
 }
 
 func (lexer *Lexer) handleIdentifiers(char *rune) (int, string) {

@@ -71,12 +71,5 @@ var KEYWORDS = map[string]int{
 type Token struct {
 	tokenType int8
 	lexeme    string
-	literal   string
-}
-
-func (token Token) Create(tokenType int8, lexeme string, literal string) Token {
-	token.tokenType = tokenType
-	token.lexeme = lexeme
-	token.literal = literal
-	return token
+	literal   interface{}
 }
