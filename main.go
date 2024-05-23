@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	Lox "github.com/DrEmbryo/lox/frontend"
+	Lox "github.com/DrEmbryo/lox/grammar"
 )
 
 
