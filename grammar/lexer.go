@@ -38,10 +38,10 @@ func (lexer *Lexer) lookahead() rune {
 	return 0
 }
 
-func (lexer Lexer) Tokenize(source string) ([]Token, []LoxError) {
+func (lexer Lexer) Tokenize(source string) ([]Token, []LexerError) {
 	tokens := make([]Token, 10)
 	lexer.init([]rune(source), 1, 0, 1)
-	lexErrors := make([]LoxError, 0)
+	lexErrors := make([]LexerError, 0)
 
 	for {
 		var err error
@@ -115,7 +115,7 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LoxError) {
 			}
 		// handle strings
 		case char == '"':
-			var lerr LoxError
+			var lerr LexerError
 			tokenType, tokenValue, err = lexer.handleStrings(&char)
 			if err != nil && errors.As(err, &lerr) {
 				lexErrors = append(lexErrors, lerr)
@@ -131,14 +131,14 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LoxError) {
 		case char == '\n':
 			lexer.line++
 		default:
-			lexErrors = append(lexErrors, LoxError{line: lexer.line, position: lexer.current, stage: "lexer", message: fmt.Sprintf("Unknown token: %c", char)})
+			lexErrors = append(lexErrors, LexerError{line: lexer.line, position: lexer.current, stage: "lexer", message: fmt.Sprintf("Unknown token: %c", char)})
 			tokenType = -1
 		}
 		if tokenType != -1 {
 			if value, ok := tokenValue.(string); ok {
 				tokens = append(tokens, Token{tokenType: int8(tokenType), lexeme: value })
 			} else {
-				lexErrors = append(lexErrors, LoxError{line: lexer.line, position: lexer.current, stage: "lexer", message: "Unknown to cast balue to string"})	
+				lexErrors = append(lexErrors, LexerError{line: lexer.line, position: lexer.current, stage: "lexer", message: "Unknown to cast balue to string"})	
 			}
 		}
 	}
@@ -186,7 +186,7 @@ func (lexer *Lexer) handleStrings(char *rune) (int, string, error) {
 		*char = lexer.next()
 		if *char == 0 {
 			tokenType = -1
-			return tokenType, tokenValue, LoxError{line: lexer.line, position: lexer.current, stage: "lexer", message: "Unterminated string"}
+			return tokenType, tokenValue, LexerError{line: lexer.line, position: lexer.current, stage: "lexer", message: "Unterminated string"}
 		}
 		if *char != '"' {
 			if *char == '\n' {

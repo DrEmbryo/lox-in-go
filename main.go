@@ -38,4 +38,9 @@ func eval (source string) {
 		}
 	}
 	Lox.Parser{}.Parse(lexTokens)
+	if len(errs) > 0 {
+		for _, e := range errs {
+			Lox.LoxError.Print(e)
+		}
+	}
 }
