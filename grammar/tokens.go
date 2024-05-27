@@ -70,6 +70,6 @@ var KEYWORDS = map[string]int{
 
 type Token struct {
 	tokenType int8
-	lexeme    string
-	literal   interface{}
+	lexeme    any
+	literal   any
 }

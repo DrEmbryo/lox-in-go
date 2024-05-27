@@ -23,7 +23,6 @@ func (e LexerError) Error() string {
 }
 
 type ParserError struct {
-	line uint32
 	position uint32
 	token Token
 	message	string
@@ -31,12 +30,12 @@ type ParserError struct {
 
 func (e ParserError) Print() {
 	if (e.token.tokenType == EOF) {
-		fmt.Printf("[%d:%d]: EOF at %s, %s", e.line, e.position, e.token.lexeme, e.message)
+		fmt.Printf("[%d]: EOF at %s, %s", e.position, e.token.lexeme, e.message)
 	} else {
-		fmt.Printf("[%d:%d]: Token %d: failed at %s with value %s: %s", e.line, e.position, e.token.tokenType, e.token.lexeme, e.token.literal, e.message)
+		fmt.Printf("[%d]: Token %d: failed at %s with value %s: %s", e.position, e.token.tokenType, e.token.lexeme, e.token.literal, e.message)
 	}
 }
 
 func (e ParserError) Error() string {
-	return fmt.Sprintf("[%d:%d]: Token %d: failed at %s with value %s: %s", e.line, e.position, e.token.tokenType, e.token.lexeme, e.token.literal, e.message)
+	return fmt.Sprintf("[%d]: Token %d: failed at %s with value %s: %s", e.position, e.token.tokenType, e.token.lexeme, e.token.literal, e.message)
 }

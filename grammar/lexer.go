@@ -2,7 +2,6 @@ package Lox
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -39,14 +38,14 @@ func (lexer *Lexer) lookahead() rune {
 }
 
 func (lexer Lexer) Tokenize(source string) ([]Token, []LexerError) {
-	tokens := make([]Token, 10)
+	tokens := make([]Token, 0)
 	lexer.init([]rune(source), 1, 0, 1)
 	lexErrors := make([]LexerError, 0)
 
 	for {
 		var err error
 		tokenType := -1
-		var tokenValue interface{}
+		var tokenValue any
 		char := lexer.next()
 		if char == 0 {
 			break
@@ -117,7 +116,7 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LexerError) {
 		case char == '"':
 			var lerr LexerError
 			tokenType, tokenValue, err = lexer.handleStrings(&char)
-			if err != nil && errors.As(err, &lerr) {
+			if err != nil {
 				lexErrors = append(lexErrors, lerr)
 			}
 		// handle numeric values
@@ -128,18 +127,16 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LexerError) {
 			tokenType, tokenValue = lexer.handleIdentifiers(&char)
 		//  handle skippable characters 
 		case parseSkippable(char):
+			tokenType = -1
 		case char == '\n':
 			lexer.line++
+			tokenType = -1
 		default:
 			lexErrors = append(lexErrors, LexerError{line: lexer.line, position: lexer.current, stage: "lexer", message: fmt.Sprintf("Unknown token: %c", char)})
 			tokenType = -1
 		}
 		if tokenType != -1 {
-			if value, ok := tokenValue.(string); ok {
-				tokens = append(tokens, Token{tokenType: int8(tokenType), lexeme: value })
-			} else {
-				lexErrors = append(lexErrors, LexerError{line: lexer.line, position: lexer.current, stage: "lexer", message: "Unknown to cast balue to string"})	
-			}
+			tokens = append(tokens, Token{tokenType: int8(tokenType), lexeme: tokenValue})
 		}
 	}
 
@@ -178,7 +175,7 @@ func (lexer *Lexer) handleMultilineLineComments(char *rune) {
 	}
 }
 
-func (lexer *Lexer) handleStrings(char *rune) (int, string, error) {
+func (lexer *Lexer) handleStrings(char *rune) (int, string, LoxError) {
 	var tokenType int
 	var tokenValue string
 	buff := bytes.NewBufferString("")
