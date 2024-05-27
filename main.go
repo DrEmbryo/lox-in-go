@@ -37,10 +37,10 @@ func eval (source string) {
 			Lox.LoxError.Print(e)
 		}
 	}
-	Lox.Parser{}.Parse(lexTokens)
-	if len(errs) > 0 {
-		for _, e := range errs {
-			Lox.LoxError.Print(e)
-		}
+	fmt.Println(lexTokens)
+	expr, err := Lox.Parser{}.Parse(lexTokens)
+	if err != nil {
+		Lox.LoxError.Print(err)
 	}
+	fmt.Println(expr)
 }
