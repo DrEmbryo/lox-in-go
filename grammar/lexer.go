@@ -146,25 +146,16 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LexerError) {
 
 func (lexer *Lexer) handleSingleLineComments(char *rune) {
 	lexer.current++
-	for {
+	for *char != '\n' {
 		*char = lexer.next()
-		if *char == 0 {
-			break
-		}
-		if *char == '\n' {
-			lexer.line++
-			break
-		}
 	}
+	lexer.line++
 }
 
 func (lexer *Lexer) handleMultilineLineComments(char *rune) {
 	lexer.current++
-	for {
+	for *char != 0 {
 		*char = lexer.next()
-		if *char == 0 {
-			break
-		}
 		if *char == '\n' {
 			lexer.line++
 		}
@@ -201,34 +192,25 @@ func (lexer *Lexer) handleStrings(char *rune) (int, string, LoxError) {
 
 func (lexer *Lexer) handleNumerics(char *rune) (int, float64) {
 	buff := bytes.NewBufferString("")
-	for {
-		if !parseDigit(*char) {
-			break
-		}
+	for parseDigit(*char) {
 		buff.WriteRune(*char)
 		*char = lexer.next()
 	}
 	if *char == '.' && parseDigit(lexer.lookahead()) {
 		buff.WriteRune(*char)
 		*char = lexer.next()
-		for {
-			if !parseDigit(*char) {
-				break
-			}
+		for parseDigit(*char) {
 			buff.WriteRune(*char)
 			*char = lexer.next()
 		}
 	}
-	value, _ := strconv.ParseFloat(buff.String(), 32)
+	value, _ := strconv.ParseFloat(buff.String(), 64)
 	return NUMBER, value
 }
 
 func (lexer *Lexer) handleIdentifiers(char *rune) (int, string) {
 	buff := bytes.NewBufferString("")
-	for {
-		if !(parseChar(*char) || parseDigit(*char)) {
-			break
-		}
+	for parseChar(*char) || parseDigit(*char){
 		buff.WriteRune(*char)
 		*char = lexer.next()
 	}
