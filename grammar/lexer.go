@@ -136,7 +136,19 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LexerError) {
 			tokenType = -1
 		}
 		if tokenType != -1 {
-			tokens = append(tokens, Token{tokenType: int8(tokenType), lexeme: tokenValue})
+			var literal any
+			switch tokenType {
+			case NUMBER:
+				literal = tokenValue.(float64)
+			case STRING:
+				literal = tokenValue.(string)
+			case IDENTIFIER:
+				literal = tokenValue
+			default:
+				literal = nil
+			}
+			tokens = append(tokens, Token{tokenType: int8(tokenType), lexeme: tokenValue, literal: literal})
+
 		}
 	}
 

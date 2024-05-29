@@ -154,7 +154,6 @@ func (parser *Parser) primary() (Expression, LoxError) {
 	case parser.matchToken(NUMBER, STRING):
 		return LiteralExpression{literal: parser.prev().literal}, nil
 	case parser.matchToken(LEFT_PAREN):
-		fmt.Println(parser.current)
 		expr, _ := parser.expression()
 		return GroupingExpression{expression: expr}, parser.consume(RIGHT_PAREN, "Expect ')' after expression.")
 	}

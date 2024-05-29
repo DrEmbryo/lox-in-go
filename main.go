@@ -38,9 +38,9 @@ func eval (source string) {
 		}
 	}
 	fmt.Println(lexTokens)
-	expr, err := Lox.Parser{}.Parse(lexTokens)
+	ast, err := Lox.Parser{}.Parse(lexTokens)
 	if err != nil {
 		Lox.LoxError.Print(err)
 	}
-	fmt.Println(expr)
+	fmt.Println(ast)
 }
