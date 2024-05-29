@@ -68,32 +68,23 @@ func (parser *Parser) expression() (Expression, LoxError) {
 func (parser *Parser) equality() (Expression, LoxError) {
 	leftExpr, err := parser.comparison()
 
-	for {
-		if parser.matchToken(BANG, EQUAL_EQUAL) {
-			operator := parser.prev()
-			rightExpr, err := parser.comparison()
-			leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
-			return leftExpr, err
-		} else {
-			break
-		}
-	}
-
+	for parser.matchToken(BANG, EQUAL_EQUAL) {
+		operator := parser.prev()
+		rightExpr, err := parser.comparison()
+		leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
+		return leftExpr, err
+	} 
 	return leftExpr, err
 }
 
 func (parser *Parser) comparison() (Expression, LoxError) {
 	leftExpr, err := parser.term()
 
-	for {
-		if parser.matchToken(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
-			operator := parser.prev()
-			rightExpr, err := parser.term()
-			leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
-			return leftExpr, err
-		} else {
-			break
-		}
+	for  parser.matchToken(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
+		operator := parser.prev()
+		rightExpr, err := parser.term()
+		leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
+		return leftExpr, err
 	}
 
 	return leftExpr, err
@@ -102,15 +93,11 @@ func (parser *Parser) comparison() (Expression, LoxError) {
 func (parser *Parser) term() (Expression, LoxError) {
 	leftExpr, err := parser.factor()
 
-	for {
-		if parser.matchToken(MINUS, PLUS) {
-			operator := parser.prev()
-			rightExpr, err := parser.factor()
-			leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
-			return leftExpr, err
-		} else {
-			break
-		}
+	for parser.matchToken(MINUS, PLUS) {
+		operator := parser.prev()
+		rightExpr, err := parser.factor()
+		leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
+		return leftExpr, err
 	}
 
 	return leftExpr, err
@@ -119,15 +106,11 @@ func (parser *Parser) term() (Expression, LoxError) {
 func (parser *Parser) factor() (Expression, LoxError) {
 	leftExpr, err := parser.unary()
 
-	for {
-		if parser.matchToken(SLASH, STAR) {
-			operator := parser.prev()
-			rightExpr, err := parser.unary()
-			leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
-			return leftExpr, err
-		} else {
-			break
-		}
+	for parser.matchToken(SLASH, STAR) {
+		operator := parser.prev()
+		rightExpr, err := parser.unary()
+		leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
+		return leftExpr, err
 	}
 
 	return leftExpr, err
