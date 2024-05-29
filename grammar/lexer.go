@@ -55,24 +55,34 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LexerError) {
 		//handle single character tokens
 		case char == '(':
 			tokenType = LEFT_PAREN
+			tokenValue = char
 		case char == ')':
 			tokenType = RIGHT_PAREN
+			tokenValue = char
 		case char == '{':
 			tokenType = LEFT_BRACE
+			tokenValue = char
 		case char == '}':
 			tokenType = RIGHT_BRACE
+			tokenValue = char
 		case char == ',':
 			tokenType = COMMA
+			tokenValue = char
 		case char == '.':
 			tokenType = DOT
+			tokenValue = char
 		case char == '-':
 			tokenType = MINUS
+			tokenValue = char
 		case char == '+':
 			tokenType = PLUS
+			tokenValue = char
 		case char == ';':
 			tokenType = SEMICOLON
+			tokenValue = char
 		case char == '*':
 			tokenType = STAR
+			tokenValue = char
 		case char == '/':
 			// handle comments
 			switch {
@@ -82,35 +92,44 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LexerError) {
 				lexer.handleMultilineLineComments(&char)
 			default:
 				tokenType = SLASH
+				tokenValue = char
 			}
 		//handle multi character tokens
 		case char == '=':
 			if lexer.lookahead() == '=' {
 				tokenType = EQUAL_EQUAL
+				tokenValue = "=="
 				lexer.current++
 			} else {
 				tokenType = EQUAL
+				tokenValue = char
 			}
 		case char == '!':
 			if lexer.lookahead() == '=' {
 				tokenType = BANG_EQUAL
+				tokenValue = "!="
 				lexer.current++
 			} else {
 				tokenType = BANG
+				tokenValue = char
 			}
 		case char == '<':
 			if lexer.lookahead() == '=' {
 				tokenType = LESS_EQUAL
+				tokenValue = "<="
 				lexer.current++
 			} else {
-				tokenType = EQUAL
+				tokenType = LESS
+				tokenValue = char
 			}
 		case char == '>':
 			if lexer.lookahead() == '=' {
 				tokenType = GREATER_EQUAL
+				tokenValue = ">="
 				lexer.current++
 			} else {
-				tokenType = EQUAL
+				tokenType = GREATER
+				tokenValue = char
 			}
 		// handle strings
 		case char == '"':
@@ -137,18 +156,28 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LexerError) {
 		}
 		if tokenType != -1 {
 			var literal any
+			var lexeme string
 			switch tokenType {
 			case NUMBER:
 				literal = tokenValue.(float64)
 			case STRING:
 				literal = tokenValue.(string)
 			case IDENTIFIER:
-				literal = tokenValue
+				literal = tokenValue.(string)
 			default:
 				literal = nil
+			} 
+			
+			switch val := tokenValue.(type) {
+			case string:
+				lexeme = val
+			case rune: 
+				lexeme = string(val)
+			default: 
+				lexeme = fmt.Sprintf("%v", val)
 			}
-			tokens = append(tokens, Token{tokenType: int8(tokenType), lexeme: tokenValue, literal: literal})
-
+			
+			tokens = append(tokens, Token{tokenType: int8(tokenType), lexeme: lexeme, literal: literal})
 		}
 	}
 
@@ -216,6 +245,7 @@ func (lexer *Lexer) handleNumerics(char *rune) (int, float64) {
 			*char = lexer.next()
 		}
 	}
+	lexer.current--
 	value, _ := strconv.ParseFloat(buff.String(), 64)
 	return NUMBER, value
 }
