@@ -140,7 +140,7 @@ func (parser *Parser) primary() (Expression, LoxError) {
 		expr, _ := parser.expression()
 		return GroupingExpression{expression: expr}, parser.consume(RIGHT_PAREN, "Expect ')' after expression.")
 	}
-
+	parser.sync()
 	return nil, ParserError{position: parser.current, message: "Expect expression."}
 }
 
