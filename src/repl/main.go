@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	Lox "github.com/DrEmbryo/lox/grammar"
+	"github.com/DrEmbryo/lox/src/grammar"
 )
 
 
@@ -31,16 +31,16 @@ func main() {
 }
 
 func eval (source string) {
-	lexTokens, errs := Lox.Lexer{}.Tokenize(source);
+	lexTokens, errs := grammar.Lexer{}.Tokenize(source);
 	if len(errs) > 0 {
 		for _, e := range errs {
-			Lox.LoxError.Print(e)
+			grammar.LoxError.Print(e)
 		}
 	}
 	fmt.Println(lexTokens)
-	ast, err := Lox.Parser{}.Parse(lexTokens)
+	ast, err := grammar.Parser{}.Parse(lexTokens)
 	if err != nil {
-		Lox.LoxError.Print(err)
+		grammar.LoxError.Print(err)
 	}
 	fmt.Println(ast)
 }

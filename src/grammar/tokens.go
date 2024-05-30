@@ -1,4 +1,4 @@
-package Lox
+package grammar
 
 const (
 	// single char tokens
@@ -69,7 +69,7 @@ var KEYWORDS = map[string]int{
 }
 
 type Token struct {
-	tokenType int8
-	lexeme    any
-	literal   any
+	TokenType int8
+	Lexeme    any
+	Literal   any
 }

@@ -1,4 +1,4 @@
-package Lox
+package grammar
 
 import "fmt"
 
@@ -38,7 +38,7 @@ func (parser *Parser) init(tokens []Token, current uint32) {
 
 func (parser *Parser) matchToken(tokenTypes ...int8) bool {
 	for _, tokenType := range tokenTypes {
-		if tokenType != EOF && parser.lookahead().tokenType == tokenType {
+		if tokenType != EOF && parser.lookahead().TokenType == tokenType {
 			parser.next()
 			return true
 		}
@@ -49,11 +49,11 @@ func (parser *Parser) matchToken(tokenTypes ...int8) bool {
 func (parser *Parser) consume(tokenType int8, message string) (LoxError) {
 	fmt.Println(tokenType)
 	fmt.Println(parser.lookahead())
-	if parser.lookahead().tokenType == tokenType {
+	if parser.lookahead().TokenType == tokenType {
 		parser.current++
 		return nil
 	}
-	return  ParserError{token: parser.lookahead(), message: message, position: parser.current}
+	return  ParserError{Token: parser.lookahead(), Message: message, Position: parser.current}
 }
 
 func (parser Parser) Parse(tokens []Token) (Expression, LoxError) {
@@ -71,7 +71,7 @@ func (parser *Parser) equality() (Expression, LoxError) {
 	for parser.matchToken(BANG, EQUAL_EQUAL) {
 		operator := parser.prev()
 		rightExpr, err := parser.comparison()
-		leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
+		leftExpr = BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
 		return leftExpr, err
 	} 
 	return leftExpr, err
@@ -83,7 +83,7 @@ func (parser *Parser) comparison() (Expression, LoxError) {
 	for  parser.matchToken(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
 		operator := parser.prev()
 		rightExpr, err := parser.term()
-		leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
+		leftExpr = BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
 		return leftExpr, err
 	}
 
@@ -96,7 +96,7 @@ func (parser *Parser) term() (Expression, LoxError) {
 	for parser.matchToken(MINUS, PLUS) {
 		operator := parser.prev()
 		rightExpr, err := parser.factor()
-		leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
+		leftExpr = BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
 		return leftExpr, err
 	}
 
@@ -109,7 +109,7 @@ func (parser *Parser) factor() (Expression, LoxError) {
 	for parser.matchToken(SLASH, STAR) {
 		operator := parser.prev()
 		rightExpr, err := parser.unary()
-		leftExpr = BinaryExpression{left: leftExpr, right: rightExpr, operator: operator}
+		leftExpr = BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
 		return leftExpr, err
 	}
 
@@ -120,7 +120,7 @@ func (parser *Parser) unary() (Expression, LoxError) {
 	if parser.matchToken(BANG, MINUS) {
 		operator := parser.prev()
 		rightExpr, err := parser.unary()
-		return UnaryExpression{right: rightExpr, operator: operator}, err
+		return UnaryExpression{Right: rightExpr, Operator: operator}, err
 	}
 	return parser.primary()
 }
@@ -129,32 +129,32 @@ func (parser *Parser) primary() (Expression, LoxError) {
 
 	switch {
 	case parser.matchToken(FALSE):
-		return LiteralExpression{literal: false}, nil
+		return LiteralExpression{Literal: false}, nil
 	case parser.matchToken(TRUE):
-		return LiteralExpression{literal: true}, nil
+		return LiteralExpression{Literal: true}, nil
 	case parser.matchToken(NULL):
-		return LiteralExpression{literal: nil}, nil
+		return LiteralExpression{Literal: nil}, nil
 	case parser.matchToken(NUMBER, STRING):
-		return LiteralExpression{literal: parser.prev().literal}, nil
+		return LiteralExpression{Literal: parser.prev().Literal}, nil
 	case parser.matchToken(LEFT_PAREN):
 		expr, _ := parser.expression()
-		return GroupingExpression{expression: expr}, parser.consume(RIGHT_PAREN, "Expect ')' after expression.")
+		return GroupingExpression{Expression: expr}, parser.consume(RIGHT_PAREN, "Expect ')' after expression.")
 	}
 	parser.sync()
-	return nil, ParserError{position: parser.current, message: "Expect expression."}
+	return nil, ParserError{Position: parser.current, Message: "Expect expression."}
 }
 
 func (parser *Parser) sync() {
 	parser.current++
 
 	for {
-		switch parser.prev().tokenType {
+		switch parser.prev().TokenType {
 		case EOF:
 		case SEMICOLON:
 			return
 		}
 
-		switch parser.lookahead().tokenType {
+		switch parser.lookahead().TokenType {
 		case CLASS:
 			fallthrough
 		case FUNC:

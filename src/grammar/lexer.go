@@ -1,4 +1,4 @@
-package Lox
+package grammar
 
 import (
 	"bytes"
@@ -151,7 +151,7 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LexerError) {
 			lexer.line++
 			tokenType = -1
 		default:
-			lexErrors = append(lexErrors, LexerError{line: lexer.line, position: lexer.current, stage: "lexer", message: fmt.Sprintf("Unknown token: %c", char)})
+			lexErrors = append(lexErrors, LexerError{Line: lexer.line, Position: lexer.current, Stage: "lexer",  Message: fmt.Sprintf("Unknown token: %c", char)})
 			tokenType = -1
 		}
 		if tokenType != -1 {
@@ -177,11 +177,11 @@ func (lexer Lexer) Tokenize(source string) ([]Token, []LexerError) {
 				lexeme = fmt.Sprintf("%v", val)
 			}
 			
-			tokens = append(tokens, Token{tokenType: int8(tokenType), lexeme: lexeme, literal: literal})
+			tokens = append(tokens, Token{TokenType: int8(tokenType),Lexeme: lexeme, Literal: literal})
 		}
 	}
 
-	tokens = append(tokens, Token{tokenType: EOF})
+	tokens = append(tokens, Token{TokenType: EOF})
 	return tokens, lexErrors
 }
 
@@ -215,7 +215,7 @@ func (lexer *Lexer) handleStrings(char *rune) (int, string, LoxError) {
 		*char = lexer.next()
 		if *char == 0 {
 			tokenType = -1
-			return tokenType, tokenValue, LexerError{line: lexer.line, position: lexer.current, stage: "lexer", message: "Unterminated string"}
+			return tokenType, tokenValue, LexerError{Line: lexer.line, Position: lexer.current, Stage: "lexer", Message: "Unterminated string"}
 		}
 		if *char != '"' {
 			if *char == '\n' {
