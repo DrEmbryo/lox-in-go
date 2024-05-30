@@ -39,3 +39,16 @@ func (e ParserError) Print() {
 func (e ParserError) Error() string {
 	return fmt.Sprintf("[%d]: Token %d: failed at %s with value %s: %s", e.position, e.token.tokenType, e.token.lexeme, e.token.literal, e.message)
 }
+
+type RuntimeError struct {
+	token Token
+	message string
+}
+
+func (e RuntimeError) Print() {
+	fmt.Printf("[%v]: Runtime error: %s", e.token, e.message)
+}
+
+func (e RuntimeError) Error() string {
+	return fmt.Sprintf("[%v]: Runtime error: %s", e.token, e.message)
+}
