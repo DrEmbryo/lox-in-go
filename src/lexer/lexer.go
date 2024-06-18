@@ -37,10 +37,6 @@ func (lexer Lexer) Tokenize() ([]grammar.Token, []LexerError) {
 		switch token := lexer.parseSingleCharToken(&char).(type) {
 		case grammar.Token:
 			tokens = append(tokens, token)
-		}
-		switch token := lexer.parseMultiCahrToken(&char).(type) {
-		case grammar.Token:
-			tokens = append(tokens, token)
 		case LexerError:
 			lexErrors = append(lexErrors, token)
 		}
@@ -48,7 +44,7 @@ func (lexer Lexer) Tokenize() ([]grammar.Token, []LexerError) {
 		if lexer.current == len(lexer.Source) {
 			tokens = append(tokens, grammar.Token{TokenType: grammar.EOF, Lexeme: "EOF"})
 		}
-
+		char = lexer.consume()
 	}
 
 	return tokens, lexErrors
@@ -86,7 +82,8 @@ func (lexer *Lexer) parseSingleCharToken(char *rune) any {
 			return grammar.Token{TokenType: grammar.SLASH, Lexeme: string(*char)}
 		}
 	}
-	return nil
+	
+	return lexer.parseMultiCahrToken(char)
 }
 
 func (lexer *Lexer) parseMultiCahrToken(char *rune) any {
@@ -130,12 +127,12 @@ func (lexer *Lexer) parseMultiCahrToken(char *rune) any {
 		case parseChar(char):
 			return lexer.parseIdentifiers(char)
 		case parseSkippable(char):
+			return nil
 		default:
 			return LexerError{Line: lexer.line, Position: lexer.current, Message: fmt.Sprintf("Unknown token: %c", *char)}
-		}	
-	} 
-
-	return nil
+			}	
+		} 
+		return nil
 }
 
 func (lexer *Lexer) parseString(char *rune) (grammar.Token, grammar.LoxError) {
@@ -248,6 +245,6 @@ func parseChar(char *rune) bool {
 }
 
 func parseSkippable(char *rune) bool {
-	expr, _ := regexp.Compile("[\t\r ]*")
+	expr, _ := regexp.Compile("[\t\r ]")
 	return expr.MatchString(string(*char))
 }
