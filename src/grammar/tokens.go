@@ -69,7 +69,7 @@ var KEYWORDS = map[string]int{
 }
 
 type Token struct {
-	TokenType int8
+	TokenType int
 	Lexeme    any
 	Literal   any
 }
