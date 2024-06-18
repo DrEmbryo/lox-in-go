@@ -3,8 +3,8 @@ package lexer
 import "fmt"
 
 type LexerError struct {
-	Line     int32
-	Position int32
+	Line     int
+	Position int
 	Message  string
 }
 
