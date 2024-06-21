@@ -30,10 +30,13 @@ func (lexer Lexer) Tokenize() ([]grammar.Token, []LexerError) {
 	tokens := make([]grammar.Token, 0)
 	lexErrors := make([]LexerError, 0)
 
-	fmt.Println(lexer.Source)
+	if len(lexer.Source) == 0 {
+		lexErrors = append(lexErrors, LexerError{Message: "source contains 0 characters"})
+		return tokens, lexErrors
+	}
 
-	char := lexer.consume()
-	for lexer.current < len(lexer.Source) {
+	for {
+		char := lexer.consume()
 		switch token := lexer.parseSingleCharToken(&char).(type) {
 		case grammar.Token:
 			tokens = append(tokens, token)
@@ -43,14 +46,15 @@ func (lexer Lexer) Tokenize() ([]grammar.Token, []LexerError) {
 
 		if lexer.current == len(lexer.Source) {
 			tokens = append(tokens, grammar.Token{TokenType: grammar.EOF, Lexeme: "EOF"})
+			break
 		}
-		char = lexer.consume()
 	}
 
 	return tokens, lexErrors
 }
 
 func (lexer *Lexer) parseSingleCharToken(char *rune) any {
+	fmt.Println(string(*char))
 	switch *char {
 	case '(':
 		return grammar.Token{TokenType: grammar.LEFT_PAREN, Lexeme: string(*char)}
@@ -164,14 +168,15 @@ func (lexer *Lexer) parseNumerics(char *rune) grammar.Token {
 	for parseDigit(char) {
 		buff.WriteRune(*char)
 		if lexer.current == len(lexer.Source) {
-			break
+			value, _ := strconv.ParseFloat(buff.String(), 64)
+ 			return grammar.Token{TokenType: grammar.NUMBER, Lexeme: value}
 		}
 		*char = lexer.consume()
 	}
 	nextChar := lexer.lookahead()
 	if *char == '.' && parseDigit(&nextChar) {
 		buff.WriteRune(*char)
-		*char = lexer.consume()
+		lexer.consume()
 		for parseDigit(char) {
 			buff.WriteRune(*char)
 			if lexer.current == len(lexer.Source) {

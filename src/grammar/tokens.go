@@ -68,6 +68,8 @@ var KEYWORDS = map[string]int{
 	"while":  WHILE,
 }
 
+var SYNC_TOKENS = []int{CLASS, FUNC, VAR, FOR, IF, WHILE, PRINT, RETURN }
+
 type Token struct {
 	TokenType int
 	Lexeme    any

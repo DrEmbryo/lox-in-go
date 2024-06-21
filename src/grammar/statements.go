@@ -1,11 +1,11 @@
 package grammar
 
-// type Statement any
+type Statement any
 
-// type ExpressionStatement struct {
-// 	Expression any
-// }
+type ExpressionStatement struct {
+	Expression any
+}
 
-// type PrintStatment struct {
-// 	Value Expression
-// }
+type PrintStatment struct {
+	Value Expression
+}

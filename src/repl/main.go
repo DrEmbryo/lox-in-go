@@ -40,7 +40,8 @@ func eval (source string) {
 	}
 	fmt.Println("tokens generated from source:")
 	fmt.Println(loxTokens)
-	// stmts, err := grammar.Parser{}.Parse(loxTokens)
+	// parser := parser.Parser{Tokens: loxTokens}
+	// stmts, err := parser.Parse()
 	// if err != nil {
 	// 	grammar.LoxError.Print(err)
 	// }
