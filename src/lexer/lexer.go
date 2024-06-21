@@ -125,8 +125,8 @@ func (lexer *Lexer) parseMultiCahrToken(char *rune) any {
 		switch {
 		case parseDigit(char):
 			return lexer.parseNumerics(char)
-		// case parseChar(char):
-		// 	return lexer.parseIdentifiers(char)
+		case parseChar(char):
+			return lexer.parseIdentifiers(char)
 		case parseSkippable(char):
 			return nil
 		default:
