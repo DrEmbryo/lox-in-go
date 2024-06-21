@@ -35,7 +35,7 @@ func (lexer Lexer) Tokenize() ([]grammar.Token, []LexerError) {
 		return tokens, lexErrors
 	}
 
-	for {
+	for lexer.current <= len(lexer.Source) - 1 {
 		char := lexer.consume()
 		switch token := lexer.parseSingleCharToken(&char).(type) {
 		case grammar.Token:
@@ -44,11 +44,9 @@ func (lexer Lexer) Tokenize() ([]grammar.Token, []LexerError) {
 			lexErrors = append(lexErrors, token)
 		}
 
-		if lexer.current == len(lexer.Source) {
-			tokens = append(tokens, grammar.Token{TokenType: grammar.EOF, Lexeme: "EOF"})
-			break
-		}
 	}
+
+	tokens = append(tokens, grammar.Token{TokenType: grammar.EOF, Lexeme: "EOF"})
 
 	return tokens, lexErrors
 }
