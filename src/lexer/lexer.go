@@ -52,7 +52,6 @@ func (lexer Lexer) Tokenize() ([]grammar.Token, []LexerError) {
 }
 
 func (lexer *Lexer) parseSingleCharToken(char *rune) any {
-	fmt.Println(string(*char))
 	switch *char {
 	case '(':
 		return grammar.Token{TokenType: grammar.LEFT_PAREN, Lexeme: string(*char)}
@@ -122,43 +121,36 @@ func (lexer *Lexer) parseMultiCahrToken(char *rune) any {
 		return token
 	case '\n':
 		lexer.line++
-	default:
-		switch {
-		case parseDigit(char):
-			return lexer.parseNumerics(char)
-		case parseChar(char):
-			return lexer.parseIdentifiers(char)
-		case parseSkippable(char):
-			return nil
-		default:
-			return LexerError{Line: lexer.line, Position: lexer.current, Message: fmt.Sprintf("Unknown token: %c", *char)}
-			}	
+	// default:
+	// 	switch {
+	// 	case parseDigit(char):
+	// 		return lexer.parseNumerics(char)
+	// 	case parseChar(char):
+	// 		return lexer.parseIdentifiers(char)
+	// 	case parseSkippable(char):
+	// 		return nil
+	// 	default:
+	// 		return LexerError{Line: lexer.line, Position: lexer.current, Message: fmt.Sprintf("Unknown token: %c", *char)}
+	// 		}	
 		} 
 		return nil
 }
 
 func (lexer *Lexer) parseString(char *rune) (grammar.Token, grammar.LoxError) {
 	buff := bytes.NewBufferString("")
-	*char = lexer.consume()
-	var token grammar.Token
-	for lexer.current < len(lexer.Source) {
-		if *char != '"' {
-			if *char == '\n' {
-				lexer.line++
-			}
-			buff.WriteRune(*char)
-		} else {
-			token = grammar.Token{TokenType: grammar.STRING, Lexeme: buff.String()}
-			break
-		}
-	
-		if lexer.current == len(lexer.Source) {
-			return grammar.Token{}, LexerError{Line: lexer.line, Position: lexer.current,  Message: "Unterminated string"}
-		}
-		*char = lexer.consume()
-	}
 
-	return token, nil
+	for lexer.current <= len(lexer.Source) - 1 {
+		*char = lexer.consume()
+		switch *char {
+		case '"':
+			return grammar.Token{TokenType: grammar.STRING, Lexeme: buff.String()}, nil
+		case '\n':
+			lexer.line++
+		default :
+			buff.WriteRune(*char)
+		}
+	}
+	return grammar.Token{}, LexerError{Line: lexer.line, Position: lexer.current,  Message: "Unterminated string"}
 }
 
 func (lexer *Lexer) parseNumerics(char *rune) grammar.Token {
