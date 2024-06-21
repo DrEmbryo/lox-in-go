@@ -121,17 +121,17 @@ func (lexer *Lexer) parseMultiCahrToken(char *rune) any {
 		return token
 	case '\n':
 		lexer.line++
-	// default:
-	// 	switch {
-	// 	case parseDigit(char):
-	// 		return lexer.parseNumerics(char)
-	// 	case parseChar(char):
-	// 		return lexer.parseIdentifiers(char)
-	// 	case parseSkippable(char):
-	// 		return nil
-	// 	default:
-	// 		return LexerError{Line: lexer.line, Position: lexer.current, Message: fmt.Sprintf("Unknown token: %c", *char)}
-	// 		}	
+	default:
+		switch {
+		case parseDigit(char):
+			return lexer.parseNumerics(char)
+		// case parseChar(char):
+		// 	return lexer.parseIdentifiers(char)
+		case parseSkippable(char):
+			return nil
+		default:
+			return LexerError{Line: lexer.line, Position: lexer.current, Message: fmt.Sprintf("Unknown token: %c", *char)}
+			}	
 		} 
 		return nil
 }
@@ -155,26 +155,28 @@ func (lexer *Lexer) parseString(char *rune) (grammar.Token, grammar.LoxError) {
 
 func (lexer *Lexer) parseNumerics(char *rune) grammar.Token {
 	buff := bytes.NewBufferString("")
-	for parseDigit(char) {
-		buff.WriteRune(*char)
-		if lexer.current == len(lexer.Source) {
-			value, _ := strconv.ParseFloat(buff.String(), 64)
- 			return grammar.Token{TokenType: grammar.NUMBER, Lexeme: value}
-		}
+	buff.WriteRune(*char)
+	for lexer.current <= len(lexer.Source) - 1 {
 		*char = lexer.consume()
-	}
-	nextChar := lexer.lookahead()
-	if *char == '.' && parseDigit(&nextChar) {
-		buff.WriteRune(*char)
-		lexer.consume()
-		for parseDigit(char) {
+		if (parseDigit(char)) {
 			buff.WriteRune(*char)
-			if lexer.current == len(lexer.Source) {
+		} else {
+			break
+		}
+	}
+
+	if *char == '.' {
+		buff.WriteRune(*char)
+		for lexer.current <= len(lexer.Source) - 1 {
+			*char = lexer.consume()
+			if (parseDigit(char)) {
+				buff.WriteRune(*char)
+			} else {
 				break
 			}
-			*char = lexer.consume()
 		}
 	}
+
 	value, _ := strconv.ParseFloat(buff.String(), 64)
  	return grammar.Token{TokenType: grammar.NUMBER, Lexeme: value}
 }
