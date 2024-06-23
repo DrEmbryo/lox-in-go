@@ -7,6 +7,7 @@ import (
 
 	"github.com/DrEmbryo/lox/src/grammar"
 	"github.com/DrEmbryo/lox/src/lexer"
+	"github.com/DrEmbryo/lox/src/parser"
 )
 
 func main() {
@@ -40,13 +41,13 @@ func eval (source string) {
 	}
 	fmt.Println("tokens generated from source:")
 	fmt.Println(loxTokens)
-	// parser := parser.Parser{Tokens: loxTokens}
-	// stmts, err := parser.Parse()
-	// if err != nil {
-	// 	grammar.LoxError.Print(err)
-	// }
-	// fmt.Println("ast generated from tokens:")
-	// fmt.Println(stmts)
+	parser := parser.Parser{Tokens: loxTokens}
+	stmts, err := parser.Parse()
+	if err != nil {
+		grammar.LoxError.Print(err)
+	}
+	fmt.Println("ast generated from tokens:")
+	fmt.Println(stmts)
 	// parsErr := runtime.Interpriter{}.Interpret(stmts)
 	// if len(parsErr) > 0 {
 	// 	for _, e := range parsErr {

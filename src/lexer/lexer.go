@@ -52,7 +52,6 @@ func (lexer Lexer) Tokenize() ([]grammar.Token, []LexerError) {
 }
 
 func (lexer *Lexer) parseSingleCharToken(char *rune) any {
-	fmt.Println(string(*char))
 	switch *char {
 	case '(':
 		return grammar.Token{TokenType: grammar.LEFT_PAREN, Lexeme: string(*char)}
@@ -176,8 +175,6 @@ func (lexer *Lexer) parseNumerics(char *rune) grammar.Token {
 				break
 			}
 		}
-	} else {
-		lexer.current--
 	}
 
 	value, _ := strconv.ParseFloat(buff.String(), 64)
