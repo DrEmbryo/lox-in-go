@@ -177,6 +177,10 @@ func (lexer *Lexer) parseNumerics(char *rune) grammar.Token {
 		}
 	}
 
+	if (!parseDigit(char)) {
+		lexer.current--
+	}
+
 	value, _ := strconv.ParseFloat(buff.String(), 64)
  	return grammar.Token{TokenType: grammar.NUMBER, Lexeme: value}
 }
@@ -189,10 +193,11 @@ func (lexer *Lexer) parseIdentifiers(char *rune) grammar.Token {
 		if (parseDigit(char) || parseChar(char)) {
 			buff.WriteRune(*char)
 		} else {
+			lexer.current--
 			break
 		}
 	}
-	lexer.current--
+
 	tokenValue := buff.String()
 	keyword, ok := grammar.KEYWORDS[tokenValue]
 	if ok {

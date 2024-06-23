@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/DrEmbryo/lox/src/grammar"
@@ -29,7 +28,6 @@ func (parser *Parser) lookbehind() grammar.Token {
 }
 
 func (parser *Parser) expect(tokenType int, message string) grammar.LoxError {
-	fmt.Println(tokenType == grammar.EOF)
 	if tokenType != grammar.EOF && parser.lookahead().TokenType == tokenType{
 		parser.current++
 		return nil
@@ -68,7 +66,6 @@ func (parser Parser) Parse() ([]grammar.Statement, grammar.LoxError) {
 }
 
 func (parser *Parser) statement() (grammar.Statement, grammar.LoxError) {
-	fmt.Println(parser.Tokens[parser.current])
 	switch {
 	case parser.matchToken(grammar.PRINT):
 		return parser.printStatment()
