@@ -6,9 +6,10 @@ import (
 	"os"
 
 	"github.com/DrEmbryo/lox/src/grammar"
+	"github.com/DrEmbryo/lox/src/lexer"
+	"github.com/DrEmbryo/lox/src/parser"
 	"github.com/DrEmbryo/lox/src/runtime"
 )
-
 
 func main() {
 	var source string
@@ -32,24 +33,26 @@ func main() {
 }
 
 func eval (source string) {
-	loxTokens, errs := grammar.Lexer{}.Tokenize(source);
-	if len(errs) > 0 {
-		for _, e := range errs {
+	lexer := &lexer.Lexer{Source: []rune(source)}
+	loxTokens, lexErrs := lexer.Tokenize();
+	if len(lexErrs) > 0 {
+		for _, e := range lexErrs {
 			grammar.LoxError.Print(e)
 		}
 	}
 	fmt.Println("tokens generated from source:")
 	fmt.Println(loxTokens)
-	ast, err := grammar.Parser{}.Parse(loxTokens)
+	parser := parser.Parser{Tokens: loxTokens}
+	stmts, err := parser.Parse()
 	if err != nil {
 		grammar.LoxError.Print(err)
 	}
 	fmt.Println("ast generated from tokens:")
-	fmt.Println(ast)
-	value, err := runtime.Interpriter{}.Interpret(ast)
-	if err != nil {
-		grammar.LoxError.Print(err)
-		return 
+	fmt.Println(stmts)
+	parsErr := runtime.Interpriter{}.Interpret(stmts)
+	if len(parsErr) > 0 {
+		for _, e := range parsErr {
+			grammar.LoxError.Print(e)
+		}
 	}
-	fmt.Printf("%v", value)
 }

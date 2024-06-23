@@ -13,7 +13,7 @@ func (interpriter *Interpriter) literalExpr(expr grammar.LiteralExpression) (any
 	return expr.Literal, nil
 }
 
-func (interpriter *Interpriter) groupintExpr(expr  grammar.GroupingExpression) (any, grammar.LoxError) {
+func (interpriter *Interpriter) groupingExpr(expr  grammar.GroupingExpression) (any, grammar.LoxError) {
 	return interpriter.evaluate(expr.Expression)
 }
 
@@ -63,7 +63,7 @@ func (interpriter *Interpriter) binaryExpr(expr  grammar.BinaryExpression) (any,
 				return left + right.(float64), nil
 			}
 		}
-		return nil, grammar.RuntimeError{Token: expr.Operator, Message: "Operands must be two numbers or two strings."}
+		return nil, RuntimeError{Token: expr.Operator, Message: "Operands must be two numbers or two strings."}
 
 	case  grammar.SLASH:
 		err := checkNumericOperands(expr.Operator, left, right)
@@ -117,12 +117,11 @@ func (interpriter *Interpriter) binaryExpr(expr  grammar.BinaryExpression) (any,
 }
 
 func (interpriter *Interpriter) evaluate(expr  grammar.Expression) (any, grammar.LoxError) {
-
 	switch exprType := expr.(type) {
 	case  grammar.LiteralExpression:
 		return interpriter.literalExpr(exprType)
 	case  grammar.GroupingExpression:
-		return interpriter.groupintExpr(exprType)
+		return interpriter.groupingExpr(exprType)
 	case  grammar.UnaryExpression:
 		return interpriter.unaryExpr(exprType)
 	case  grammar.BinaryExpression:
@@ -132,12 +131,43 @@ func (interpriter *Interpriter) evaluate(expr  grammar.Expression) (any, grammar
 	return nil, nil
 }
 
-func (interpriter Interpriter) Interpret(expression grammar.Expression) (any, grammar.LoxError) {
-	value, err := interpriter.evaluate(expression)
+func (interpriter *Interpriter) printStmt(stmt grammar.PrintStatment) grammar.LoxError {
+	value, err := interpriter.evaluate(stmt.Value)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return value, nil
+	fmt.Println(value)
+	return nil
+}
+
+func (interpriter *Interpriter) expressionStmt(stmt grammar.Statement) grammar.LoxError {
+	_, err := interpriter.evaluate(stmt)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (interpriter *Interpriter) execute(stmt grammar.Statement) grammar.LoxError {
+	switch stmtType := stmt.(type) {
+	case  grammar.PrintStatment:
+		return interpriter.printStmt(stmtType)
+	case  grammar.ExpressionStatement:
+		return interpriter.expressionStmt(stmtType)
+	}
+
+	return nil
+}
+
+func (interpriter Interpriter) Interpret(statements []grammar.Statement) []grammar.LoxError {
+	errs := make([]grammar.LoxError, 0)
+	for _, stmt := range statements {
+		err := interpriter.execute(stmt)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return  errs
 }
 
 func checkTypeEquality(a, b any) bool {
@@ -163,7 +193,7 @@ func checkNuericOperand(operator grammar.Token, operand any) grammar.LoxError {
 	case float64:
 		return nil
 	}
-	return grammar.RuntimeError{Token: operator, Message: "Operand must be a number."}
+	return RuntimeError{Token: operator, Message: "Operand must be a number."}
 }
 
 func checkNumericOperands(operator grammar.Token, left any, right any) grammar.LoxError {
@@ -173,5 +203,5 @@ func checkNumericOperands(operator grammar.Token, left any, right any) grammar.L
 			return nil
 		}
 	}
-	return grammar.RuntimeError{Token: operator, Message: "Operands must be numbers."}
+	return RuntimeError{Token: operator, Message: "Operands must be numbers."}
 }
