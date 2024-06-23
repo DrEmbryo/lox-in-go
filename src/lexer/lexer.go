@@ -199,20 +199,18 @@ func (lexer *Lexer) parseIdentifiers(char *rune) grammar.Token {
 }
 
 func (lexer *Lexer) parseSingleLineComments(char *rune) {
-	for lexer.current < len(lexer.Source) {
+	for lexer.current <= len(lexer.Source) - 1 {
+		*char = lexer.consume()
 		if *char == '\n' {
 			lexer.line++
 			return
 		}
-		if lexer.current == len(lexer.Source) {
-			return
-		}
-		*char = lexer.consume()
 	}
 }
 
 func (lexer *Lexer) parseMultilineLineComments(char *rune) {
-	for lexer.current < len(lexer.Source) {
+	for lexer.current <= len(lexer.Source) - 1 {
+		*char = lexer.consume()
 		if *char == '\n' {
 			lexer.line++
 		}
@@ -224,10 +222,6 @@ func (lexer *Lexer) parseMultilineLineComments(char *rune) {
 			*char = lexer.consume()
 			return 
 		}
-		if lexer.current == len(lexer.Source) {
-			return
-		}
-		*char = lexer.consume()
 	}
 }
 
