@@ -55,6 +55,7 @@ func (parser Parser) Parse() ([]grammar.Statement, grammar.LoxError) {
 	for parser.current <= len(parser.Tokens) - 1 &&  parser.lookahead().TokenType != grammar.EOF {
 		stmt, err := parser.statement()
 		if err != nil {
+			parser.sync()
 			return nil, err
 		}
 		statements = append(statements, stmt)
@@ -92,6 +93,37 @@ func (parser *Parser) expressionStatement() (grammar.Statement, grammar.LoxError
 
 func (parser *Parser) expression() (grammar.Expression, grammar.LoxError) {
 	return parser.equality()
+}
+
+func (parser *Parser) declaration() (grammar.Statement, grammar.LoxError) {
+	if parser.matchToken(grammar.VAR) {
+		return parser.variableDeclaration()
+	}
+	 return nil, nil
+}
+
+func (parser *Parser) variableDeclaration() (grammar.Statement, grammar.LoxError) {
+	var initializer grammar.Expression
+
+	err := parser.expect(grammar.IDENTIFIER, "Expect variable name.")
+	if err != nil {
+		return nil, err
+	}
+	name := parser.lookbehind()
+
+	if parser.matchToken(grammar.EQUAL) {
+		initializer, err = parser.expression();
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	parser.expect(grammar.SEMICOLON, "Expect ';' after variable declaration.")
+	if err != nil {
+		return nil, err
+	}
+
+	return grammar.VariableDeclarationStatment{Name: name, Initializer: initializer}, nil
 }
 
 func (parser *Parser) equality() (grammar.Expression, grammar.LoxError) {
@@ -165,6 +197,8 @@ func (parser *Parser) primary() (grammar.Expression, grammar.LoxError) {
 		return grammar.LiteralExpression{Literal: nil}, nil
 	case parser.matchToken(grammar.NUMBER, grammar.STRING):
 		return grammar.LiteralExpression{Literal: parser.lookbehind().Lexeme}, nil
+	case parser.matchToken(grammar.IDENTIFIER):
+		return grammar.VariableDeclaration{Name: parser.lookbehind()}, nil
 	case parser.matchToken(grammar.LEFT_PAREN):
 		expr, _ := parser.expression()
 		return grammar.GroupingExpression{Expression: expr}, parser.expect(grammar.RIGHT_PAREN, "Expect ')' after expression.")
