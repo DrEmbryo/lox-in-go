@@ -20,7 +20,7 @@ func main() {
 	options.Bool("debug", false, "Run REPL in debug mode")
 
 	var source string
-	if strings.Contains(os.Args[1], "-") {
+	if len(os.Args) < 2 || strings.Contains(os.Args[1], "-") {
 		options.Parse(os.Args[1:])
 		fmt.Println("Lox REPL 0.2: ")
 		for {			
