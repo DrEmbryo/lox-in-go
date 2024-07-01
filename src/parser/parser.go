@@ -53,7 +53,7 @@ func (parser Parser) Parse() ([]grammar.Statement, grammar.LoxError) {
 	}
 
 	for parser.current <= len(parser.Tokens) - 1 &&  parser.lookahead().TokenType != grammar.EOF {
-		stmt, err := parser.statement()
+		stmt, err := parser.declaration()
 		if err != nil {
 			parser.sync()
 			return nil, err
@@ -92,14 +92,37 @@ func (parser *Parser) expressionStatement() (grammar.Statement, grammar.LoxError
  }
 
 func (parser *Parser) expression() (grammar.Expression, grammar.LoxError) {
-	return parser.equality()
+	return parser.assignment()
+}
+
+func (parser *Parser) assignment() (grammar.Expression, grammar.LoxError) {
+	expr, err := parser.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	if parser.matchToken(grammar.EQUAL) {
+		equal := parser.lookbehind()
+		value, err := parser.assignment()
+		if err != nil {
+			return nil, err
+		}
+
+		switch exprType := expr.(type) {
+		case grammar.VariableDeclaration:
+			return grammar.AssignmentExpression{Name: exprType.Name, Value: value}, nil
+		default:
+			return nil, ParserError{Token: equal, Message: "Invalid assignment target.", Position: parser.current}
+		}
+	}
+	return expr, nil
 }
 
 func (parser *Parser) declaration() (grammar.Statement, grammar.LoxError) {
 	if parser.matchToken(grammar.VAR) {
 		return parser.variableDeclaration()
 	}
-	 return nil, nil
+	return parser.statement()
 }
 
 func (parser *Parser) variableDeclaration() (grammar.Statement, grammar.LoxError) {

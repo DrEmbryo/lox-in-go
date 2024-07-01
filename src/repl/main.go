@@ -68,7 +68,7 @@ func eval (source string, options *flag.FlagSet) {
 		fmt.Println("ast generated from tokens:")
 		fmt.Println(stmts)
 	}
-	parsErr := runtime.Interpriter{}.Interpret(stmts)
+	parsErr := runtime.Interpriter{Env: runtime.Environment{Values: make(map[string]any)}}.Interpret(stmts)
 	if len(parsErr) > 0 {
 		for _, e := range parsErr {
 			grammar.LoxError.Print(e)

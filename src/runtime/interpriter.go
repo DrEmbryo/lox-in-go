@@ -7,6 +7,7 @@ import (
 )
 
 type Interpriter struct {
+	Env Environment
 }
 
 func (interpriter *Interpriter) literalExpr(expr grammar.LiteralExpression) (any, grammar.LoxError) {
@@ -126,6 +127,12 @@ func (interpriter *Interpriter) evaluate(expr  grammar.Expression) (any, grammar
 		return interpriter.unaryExpr(exprType)
 	case  grammar.BinaryExpression:
 		return interpriter.binaryExpr(exprType)
+	case grammar.VariableDeclaration:
+		return interpriter.varExpr(exprType)
+	case grammar.AssignmentExpression:
+		return interpriter.assignmentExpr(exprType)
+	default:
+		fmt.Printf("%T", exprType)
 	}
 
 	return nil, nil
@@ -154,6 +161,8 @@ func (interpriter *Interpriter) execute(stmt grammar.Statement) grammar.LoxError
 		return interpriter.printStmt(stmtType)
 	case  grammar.ExpressionStatement:
 		return interpriter.expressionStmt(stmtType)
+	case grammar.VariableDeclarationStatment:
+		return interpriter.varStmt(stmtType)
 	}
 
 	return nil
@@ -168,6 +177,30 @@ func (interpriter Interpriter) Interpret(statements []grammar.Statement) []gramm
 		}
 	}
 	return  errs
+}
+
+func (interpriter *Interpriter) varStmt(stmt grammar.VariableDeclarationStatment) grammar.LoxError {
+	var value any
+	var err grammar.LoxError
+	if stmt.Initializer != nil {
+		value, err = interpriter.evaluate(stmt.Initializer)
+		interpriter.Env.defineEnvValue(fmt.Sprintf("%s", stmt.Name.Lexeme), value)
+		return err
+	} 
+	return RuntimeError{Token: stmt.Name, Message: "Expect initialization of variable"}
+}
+
+func (interpriter *Interpriter) varExpr(expr grammar.VariableDeclaration) (any, grammar.LoxError) {
+	return interpriter.Env.getEnvValue(expr.Name) 
+}
+
+func (interpriter *Interpriter) assignmentExpr(expr grammar.AssignmentExpression) (any, grammar.LoxError) {
+	value, err := interpriter.evaluate(expr.Value)
+	if err != nil {
+		return nil, err
+	}
+	interpriter.Env.assignEnvValue(expr.Name, value)
+	return value, nil
 }
 
 func checkTypeEquality(a, b any) bool {

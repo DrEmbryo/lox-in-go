@@ -10,7 +10,7 @@ type Environment struct {
 	Values map[string]any
 }
 
-func (env *Environment) define(name string, value any) {
+func (env *Environment) defineEnvValue(name string, value any) {
 	env.Values[name] = value
 }
 
@@ -21,4 +21,14 @@ func (env *Environment) getEnvValue(name grammar.Token) (any, grammar.LoxError) 
 		return val, nil
 	}
 	return nil, RuntimeError{Token: name, Message: fmt.Sprintf("Undefined variable '%s'.", name.Lexeme)}
+}
+
+func (env *Environment) assignEnvValue(name grammar.Token, value any) (grammar.LoxError) {
+	lookup := fmt.Sprintf("%s",name.Lexeme)
+	_, ok := env.Values[lookup]
+	if ok {
+		env.Values[lookup] = value
+		return nil
+	}
+	return RuntimeError{Token: name, Message: fmt.Sprintf("Undefined variable '%s'.", name.Lexeme)}
 }

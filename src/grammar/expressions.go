@@ -24,3 +24,8 @@ type GroupingExpression struct {
 type VariableDeclaration struct {
 	Name Token
 }
+
+type AssignmentExpression struct {
+	Name  Token
+	Value Expression
+}
