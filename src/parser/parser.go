@@ -28,7 +28,7 @@ func (parser *Parser) lookbehind() grammar.Token {
 }
 
 func (parser *Parser) expect(tokenType int, message string) grammar.LoxError {
-	if tokenType != grammar.EOF && parser.lookahead().TokenType == tokenType{
+	if tokenType != grammar.EOF && parser.lookahead().TokenType == tokenType {
 		parser.current++
 		return nil
 	}
@@ -52,14 +52,12 @@ func (parser Parser) Parse() ([]grammar.Statement, grammar.LoxError) {
 		return statements, ParserError{Position: 0, Message: "source contains 0 tokens"}
 	}
 
-	token := parser.Tokens[parser.current];
-	for parser.current <= len(parser.Tokens) - 1 &&  token.TokenType != grammar.EOF {
+	for parser.current <= len(parser.Tokens) - 1 &&  parser.lookahead().TokenType != grammar.EOF {
 		stmt, err := parser.statement()
 		if err != nil {
 			return nil, err
 		}
 		statements = append(statements, stmt)
-		token = parser.consume()
 	}
 
 	return statements, nil
@@ -69,7 +67,7 @@ func (parser *Parser) statement() (grammar.Statement, grammar.LoxError) {
 	switch {
 	case parser.matchToken(grammar.PRINT):
 		return parser.printStatment()
-	default:
+	default :
 		return parser.expressionStatement()
 	}
 }
@@ -80,7 +78,7 @@ func (parser *Parser) printStatment() (grammar.Statement, grammar.LoxError) {
 		return nil, err
 	}
 
-	return grammar.PrintStatment{Value: value}, nil
+	return grammar.PrintStatment{Value: value}, parser.expect(grammar.SEMICOLON, "Expect ';' after value")
 }
 
 func (parser *Parser) expressionStatement() (grammar.Statement, grammar.LoxError) {
@@ -89,7 +87,7 @@ func (parser *Parser) expressionStatement() (grammar.Statement, grammar.LoxError
 		return nil, err
 	}
 
-	return grammar.ExpressionStatement{Expression: expr}, nil
+	return grammar.ExpressionStatement{Expression: expr}, parser.expect(grammar.SEMICOLON, "Expect ';' after expression")
  }
 
 func (parser *Parser) expression() (grammar.Expression, grammar.LoxError) {
