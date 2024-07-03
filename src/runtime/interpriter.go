@@ -173,15 +173,13 @@ func (interpreter *Interpreter) execute(stmt grammar.Statement) grammar.LoxError
 }
 
 func (interpreter *Interpreter) conditionalStmt(stmt grammar.ConditionalStatement) grammar.LoxError {
-	fmt.Println(stmt.Condition)
 	condition, err := interpreter.evaluate(stmt.Condition)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%v", condition != false || condition != nil)
-	if condition != false || condition != nil {
+	
+	if castToBool(condition) {
 		err := interpreter.execute(stmt.ThenBranch)
-		fmt.Println("then branch")
 		if err != nil {
 			return err
 		}
