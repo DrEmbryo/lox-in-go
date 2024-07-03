@@ -18,3 +18,9 @@ type VariableDeclarationStatement struct {
 type BlockScopeStatement struct {
 	Statements []Statement
 }
+
+type ConditionalStatement struct {
+	Condition  Expression
+	ThenBranch Statement
+	ElseBranch Statement
+}
