@@ -23,14 +23,14 @@ func main() {
 	if len(os.Args) < 2 || strings.Contains(os.Args[1], "-") {
 		options.Parse(os.Args[1:])
 		fmt.Println("Lox REPL 0.2: ")
-		for {			
+		for {
 			reader := bufio.NewReader(os.Stdin)
 			fmt.Print("> ")
 			source, _ = reader.ReadString('\n')
 			eval(source, options)
 		}
 
-		} else {
+	} else {
 		options.Parse(os.Args[2:])
 		sourceRaw, err := os.ReadFile(os.Args[1])
 		if err != nil {
@@ -42,14 +42,14 @@ func main() {
 	}
 }
 
-func eval (source string, options *flag.FlagSet) {	
+func eval(source string, options *flag.FlagSet) {
 	debugOption, parseErr := strconv.ParseBool(options.Lookup("debug").Value.String())
 	if parseErr != nil {
 		log.Fatal(parseErr)
 	}
 
 	lexer := &lexer.Lexer{Source: []rune(source)}
-	loxTokens, lexErrs := lexer.Tokenize();
+	loxTokens, lexErrs := lexer.Tokenize()
 	if len(lexErrs) > 0 {
 		for _, e := range lexErrs {
 			grammar.LoxError.Print(e)
@@ -68,9 +68,10 @@ func eval (source string, options *flag.FlagSet) {
 		fmt.Println("ast generated from tokens:")
 		fmt.Println(stmts)
 	}
-	parsErr := runtime.Interpriter{Env: runtime.Environment{Values: make(map[string]any)}}.Interpret(stmts)
-	if len(parsErr) > 0 {
-		for _, e := range parsErr {
+	Interpreter := runtime.Interpreter{Env: runtime.Environment{Values: make(map[string]any), Parent: nil}}
+	errs := Interpreter.Interpret(stmts)
+	if len(errs) > 0 {
+		for _, e := range errs {
 			grammar.LoxError.Print(e)
 		}
 	}

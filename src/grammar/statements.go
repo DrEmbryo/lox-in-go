@@ -6,11 +6,15 @@ type ExpressionStatement struct {
 	Expression Expression
 }
 
-type PrintStatment struct {
+type PrintStatement struct {
 	Value Expression
 }
 
-type VariableDeclarationStatment struct {
+type VariableDeclarationStatement struct {
 	Name        Token
 	Initializer Expression
+}
+
+type BlockScopeStatement struct {
+	Statements []Statement
 }
