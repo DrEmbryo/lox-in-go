@@ -6,28 +6,29 @@ import (
 	"github.com/DrEmbryo/lox/src/grammar"
 )
 
-type Interpriter struct {
+type Interpreter struct {
+	Env Environment
 }
 
-func (interpriter *Interpriter) literalExpr(expr grammar.LiteralExpression) (any, grammar.LoxError) {
+func (interpreter *Interpreter) literalExpr(expr grammar.LiteralExpression) (any, grammar.LoxError) {
 	return expr.Literal, nil
 }
 
-func (interpriter *Interpriter) groupingExpr(expr  grammar.GroupingExpression) (any, grammar.LoxError) {
-	return interpriter.evaluate(expr.Expression)
+func (interpreter *Interpreter) groupingExpr(expr grammar.GroupingExpression) (any, grammar.LoxError) {
+	return interpreter.evaluate(expr.Expression)
 }
 
-func (interpriter *Interpriter) unaryExpr(expr  grammar.UnaryExpression) (any, grammar.LoxError) {
-	right, err := interpriter.evaluate(expr.Right)
+func (interpreter *Interpreter) unaryExpr(expr grammar.UnaryExpression) (any, grammar.LoxError) {
+	right, err := interpreter.evaluate(expr.Right)
 	if err != nil {
 		return nil, err
 	}
 
 	switch expr.Operator.TokenType {
-	case  grammar.BANG:
+	case grammar.BANG:
 		return !castToBool(right), nil
-	case  grammar.MINUS:
-		err := checkNuericOperand(expr.Operator, right)
+	case grammar.MINUS:
+		err := checkNumericOperand(expr.Operator, right)
 		if err != nil {
 			return nil, err
 		}
@@ -36,25 +37,25 @@ func (interpriter *Interpriter) unaryExpr(expr  grammar.UnaryExpression) (any, g
 	return nil, nil
 }
 
-func (interpriter *Interpriter) binaryExpr(expr  grammar.BinaryExpression) (any, grammar.LoxError) {
-	left, err := interpriter.evaluate(expr.Left)
+func (interpreter *Interpreter) binaryExpr(expr grammar.BinaryExpression) (any, grammar.LoxError) {
+	left, err := interpreter.evaluate(expr.Left)
 	if err != nil {
 		return nil, err
 	}
-	right, err := interpriter.evaluate(expr.Right)
+	right, err := interpreter.evaluate(expr.Right)
 	if err != nil {
 		return nil, err
 	}
 
 	switch expr.Operator.TokenType {
-	case  grammar.MINUS:
+	case grammar.MINUS:
 		err := checkNumericOperands(expr.Operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) - right.(float64), nil
 
-	case  grammar.PLUS:
+	case grammar.PLUS:
 		if checkTypeEquality(left, right) {
 			switch left := left.(type) {
 			case string:
@@ -65,74 +66,80 @@ func (interpriter *Interpriter) binaryExpr(expr  grammar.BinaryExpression) (any,
 		}
 		return nil, RuntimeError{Token: expr.Operator, Message: "Operands must be two numbers or two strings."}
 
-	case  grammar.SLASH:
+	case grammar.SLASH:
 		err := checkNumericOperands(expr.Operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) / right.(float64), nil
 
-	case  grammar.STAR:
+	case grammar.STAR:
 		err := checkNumericOperands(expr.Operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) * right.(float64), nil
 
-	case  grammar.GREATER:
+	case grammar.GREATER:
 		err := checkNumericOperands(expr.Operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) > right.(float64), nil
 
-	case  grammar.GREATER_EQUAL:
+	case grammar.GREATER_EQUAL:
 		err := checkNumericOperands(expr.Operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) >= right.(float64), nil
 
-	case  grammar.LESS:
+	case grammar.LESS:
 		err := checkNumericOperands(expr.Operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) > right.(float64), nil
 
-	case  grammar.LESS_EQUAL:
+	case grammar.LESS_EQUAL:
 		err := checkNumericOperands(expr.Operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) >= right.(float64), nil
 
-	case  grammar.BANG_EQUAL:
+	case grammar.BANG_EQUAL:
 		return !checkValueEquality(left, right), nil
-	case  grammar.EQUAL_EQUAL:
+	case grammar.EQUAL_EQUAL:
 		return checkValueEquality(left, right), nil
 	}
 
 	return nil, nil
 }
 
-func (interpriter *Interpriter) evaluate(expr  grammar.Expression) (any, grammar.LoxError) {
+func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.LoxError) {
 	switch exprType := expr.(type) {
-	case  grammar.LiteralExpression:
-		return interpriter.literalExpr(exprType)
-	case  grammar.GroupingExpression:
-		return interpriter.groupingExpr(exprType)
-	case  grammar.UnaryExpression:
-		return interpriter.unaryExpr(exprType)
-	case  grammar.BinaryExpression:
-		return interpriter.binaryExpr(exprType)
+	case grammar.LiteralExpression:
+		return interpreter.literalExpr(exprType)
+	case grammar.GroupingExpression:
+		return interpreter.groupingExpr(exprType)
+	case grammar.UnaryExpression:
+		return interpreter.unaryExpr(exprType)
+	case grammar.BinaryExpression:
+		return interpreter.binaryExpr(exprType)
+	case grammar.VariableDeclaration:
+		return interpreter.varExpr(exprType)
+	case grammar.AssignmentExpression:
+		return interpreter.assignmentExpr(exprType)
+	default:
+		fmt.Printf("%T", exprType)
 	}
 
 	return nil, nil
 }
 
-func (interpriter *Interpriter) printStmt(stmt grammar.PrintStatment) grammar.LoxError {
-	value, err := interpriter.evaluate(stmt.Value)
+func (interpreter *Interpreter) printStmt(stmt grammar.PrintStatement) grammar.LoxError {
+	value, err := interpreter.evaluate(stmt.Value)
 	if err != nil {
 		return err
 	}
@@ -140,41 +147,89 @@ func (interpriter *Interpriter) printStmt(stmt grammar.PrintStatment) grammar.Lo
 	return nil
 }
 
-func (interpriter *Interpriter) expressionStmt(stmt grammar.Statement) grammar.LoxError {
-	_, err := interpriter.evaluate(stmt)
+func (interpreter *Interpreter) expressionStmt(stmt grammar.Statement) grammar.LoxError {
+	_, err := interpreter.evaluate(stmt)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (interpriter *Interpriter) execute(stmt grammar.Statement) grammar.LoxError {
+func (interpreter *Interpreter) execute(stmt grammar.Statement) grammar.LoxError {
 	switch stmtType := stmt.(type) {
-	case  grammar.PrintStatment:
-		return interpriter.printStmt(stmtType)
-	case  grammar.ExpressionStatement:
-		return interpriter.expressionStmt(stmtType)
+	case grammar.PrintStatement:
+		return interpreter.printStmt(stmtType)
+	case grammar.ExpressionStatement:
+		return interpreter.expressionStmt(stmtType)
+	case grammar.VariableDeclarationStatement:
+		return interpreter.varStmt(stmtType)
+	case grammar.BlockScopeStatement:
+		return interpreter.blockStmt(stmtType)
 	}
 
 	return nil
 }
 
-func (interpriter Interpriter) Interpret(statements []grammar.Statement) []grammar.LoxError {
+func (interpreter *Interpreter) blockStmt(stmt grammar.BlockScopeStatement) grammar.LoxError {
+	parentEnv := interpreter.Env
+	env := Environment{Values: make(map[string]any), Parent: &parentEnv}
+	return interpreter.executeBlock(stmt.Statements, env)
+}
+
+func (interpreter *Interpreter) executeBlock(stmts []grammar.Statement, env Environment) grammar.LoxError {
+	fmt.Println(interpreter)
+	var err grammar.LoxError
+	parentEnv := interpreter.Env
+	interpreter.Env = env
+	fmt.Println(interpreter)
+	for _, stmt := range stmts {
+		err = interpreter.execute(stmt)
+	}
+
+	interpreter.Env = parentEnv
+	return err
+}
+
+func (interpreter *Interpreter) Interpret(statements []grammar.Statement) []grammar.LoxError {
 	errs := make([]grammar.LoxError, 0)
 	for _, stmt := range statements {
-		err := interpriter.execute(stmt)
+		err := interpreter.execute(stmt)
 		if err != nil {
 			errs = append(errs, err)
 		}
 	}
-	return  errs
+	return errs
+}
+
+func (interpreter *Interpreter) varStmt(stmt grammar.VariableDeclarationStatement) grammar.LoxError {
+	var value any
+	var err grammar.LoxError
+	if stmt.Initializer != nil {
+		value, err = interpreter.evaluate(stmt.Initializer)
+		interpreter.Env.defineEnvValue(fmt.Sprintf("%s", stmt.Name.Lexeme), value)
+		return err
+	}
+	return RuntimeError{Token: stmt.Name, Message: "Expect initialization of variable"}
+}
+
+func (interpreter *Interpreter) varExpr(expr grammar.VariableDeclaration) (any, grammar.LoxError) {
+	return interpreter.Env.getEnvValue(expr.Name)
+}
+
+func (interpreter *Interpreter) assignmentExpr(expr grammar.AssignmentExpression) (any, grammar.LoxError) {
+	value, err := interpreter.evaluate(expr.Value)
+	if err != nil {
+		return nil, err
+	}
+	interpreter.Env.assignEnvValue(expr.Name, value)
+	return value, nil
 }
 
 func checkTypeEquality(a, b any) bool {
 	return fmt.Sprintf("%T", a) == fmt.Sprintf("%T", b)
 }
 
-func checkValueEquality(a,b any) bool {
+func checkValueEquality(a, b any) bool {
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 }
 
@@ -188,7 +243,7 @@ func castToBool(val any) bool {
 	return true
 }
 
-func checkNuericOperand(operator grammar.Token, operand any) grammar.LoxError {
+func checkNumericOperand(operator grammar.Token, operand any) grammar.LoxError {
 	switch operand.(type) {
 	case float64:
 		return nil

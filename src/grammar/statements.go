@@ -3,9 +3,18 @@ package grammar
 type Statement any
 
 type ExpressionStatement struct {
-	Expression any
+	Expression Expression
 }
 
-type PrintStatment struct {
+type PrintStatement struct {
 	Value Expression
+}
+
+type VariableDeclarationStatement struct {
+	Name        Token
+	Initializer Expression
+}
+
+type BlockScopeStatement struct {
+	Statements []Statement
 }

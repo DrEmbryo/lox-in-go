@@ -20,3 +20,12 @@ type LiteralExpression struct {
 type GroupingExpression struct {
 	Expression Expression
 }
+
+type VariableDeclaration struct {
+	Name Token
+}
+
+type AssignmentExpression struct {
+	Name  Token
+	Value Expression
+}
