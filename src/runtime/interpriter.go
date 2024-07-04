@@ -165,9 +165,31 @@ func (interpreter *Interpreter) execute(stmt grammar.Statement) grammar.LoxError
 		return interpreter.varStmt(stmtType)
 	case grammar.BlockScopeStatement:
 		return interpreter.blockStmt(stmtType)
+	case grammar.ConditionalStatement:
+		return interpreter.conditionalStmt(stmtType)
 	}
 
 	return nil
+}
+
+func (interpreter *Interpreter) conditionalStmt(stmt grammar.ConditionalStatement) grammar.LoxError {
+	condition, err := interpreter.evaluate(stmt.Condition)
+	if err != nil {
+		return err
+	}
+
+	if castToBool(condition) {
+		err := interpreter.execute(stmt.ThenBranch)
+		if err != nil {
+			return err
+		}
+	} else if stmt.ElseBranch != nil {
+		err := interpreter.execute(stmt.ElseBranch)
+		if err != nil {
+			return err
+		}
+	}
+	return err
 }
 
 func (interpreter *Interpreter) blockStmt(stmt grammar.BlockScopeStatement) grammar.LoxError {
@@ -177,11 +199,9 @@ func (interpreter *Interpreter) blockStmt(stmt grammar.BlockScopeStatement) gram
 }
 
 func (interpreter *Interpreter) executeBlock(stmts []grammar.Statement, env Environment) grammar.LoxError {
-	fmt.Println(interpreter)
 	var err grammar.LoxError
 	parentEnv := interpreter.Env
 	interpreter.Env = env
-	fmt.Println(interpreter)
 	for _, stmt := range stmts {
 		err = interpreter.execute(stmt)
 	}

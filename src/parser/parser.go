@@ -70,9 +70,39 @@ func (parser *Parser) statement() (grammar.Statement, grammar.LoxError) {
 		return parser.PrintStatement()
 	case parser.matchToken(grammar.LEFT_BRACE):
 		return parser.blockStatement()
+	case parser.matchToken(grammar.IF):
+		return parser.conditionalStatement()
 	default:
 		return parser.expressionStatement()
 	}
+}
+
+func (parser *Parser) conditionalStatement() (grammar.Statement, grammar.LoxError) {
+	var condition grammar.Expression
+	var thenBranch grammar.Statement
+	var elseBranch grammar.Statement
+	var err grammar.LoxError
+
+	parser.expect(grammar.RIGHT_PAREN, "Expect '(' before condition inside 'if' statement")
+	condition, err = parser.expression()
+	if err != nil {
+		return nil, err
+	}
+	parser.expect(grammar.LEFT_PAREN, "Expect ')' after condition inside 'if' statement")
+
+	thenBranch, err = parser.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	if parser.matchToken(grammar.ELSE) {
+		elseBranch, err = parser.statement()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return grammar.ConditionalStatement{Condition: condition, ThenBranch: thenBranch, ElseBranch: elseBranch}, nil
 }
 
 func (parser *Parser) blockStatement() (grammar.Statement, grammar.LoxError) {

@@ -13,6 +13,7 @@ import (
 	"github.com/DrEmbryo/lox/src/lexer"
 	"github.com/DrEmbryo/lox/src/parser"
 	"github.com/DrEmbryo/lox/src/runtime"
+	"github.com/DrEmbryo/lox/src/utils"
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 	var source string
 	if len(os.Args) < 2 || strings.Contains(os.Args[1], "-") {
 		options.Parse(os.Args[1:])
-		fmt.Println("Lox REPL 0.2: ")
+		fmt.Println("Lox REPL 0.4: ")
 		for {
 			reader := bufio.NewReader(os.Stdin)
 			fmt.Print("> ")
@@ -56,8 +57,8 @@ func eval(source string, options *flag.FlagSet) {
 		}
 	}
 	if debugOption {
-		fmt.Println("tokens generated from source:")
-		fmt.Println(loxTokens)
+		printer := utils.TokenPrinter{}
+		printer.Print(loxTokens)
 	}
 	parser := parser.Parser{Tokens: loxTokens}
 	stmts, err := parser.Parse()
@@ -65,8 +66,8 @@ func eval(source string, options *flag.FlagSet) {
 		grammar.LoxError.Print(err)
 	}
 	if debugOption {
-		fmt.Println("ast generated from tokens:")
-		fmt.Println(stmts)
+		printer := utils.AstPrinter{}
+		printer.Print(stmts)
 	}
 	Interpreter := runtime.Interpreter{Env: runtime.Environment{Values: make(map[string]any), Parent: nil}}
 	errs := Interpreter.Interpret(stmts)
