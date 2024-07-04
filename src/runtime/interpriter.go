@@ -177,7 +177,7 @@ func (interpreter *Interpreter) conditionalStmt(stmt grammar.ConditionalStatemen
 	if err != nil {
 		return err
 	}
-	
+
 	if castToBool(condition) {
 		err := interpreter.execute(stmt.ThenBranch)
 		if err != nil {

@@ -12,7 +12,7 @@ import (
 type Lexer struct {
 	Source  []rune
 	current int
-	line 	int
+	line    int
 }
 
 func (lexer *Lexer) consume() rune {
@@ -35,7 +35,7 @@ func (lexer Lexer) Tokenize() ([]grammar.Token, []LexerError) {
 		return tokens, lexErrors
 	}
 
-	for lexer.current <= len(lexer.Source) - 1 {
+	for lexer.current <= len(lexer.Source)-1 {
 		char := lexer.consume()
 		switch token := lexer.parseSingleCharToken(&char).(type) {
 		case grammar.Token:
@@ -83,7 +83,7 @@ func (lexer *Lexer) parseSingleCharToken(char *rune) any {
 			return grammar.Token{TokenType: grammar.SLASH, Lexeme: string(*char)}
 		}
 	}
-	
+
 	return lexer.parseMultiCahrToken(char)
 }
 
@@ -131,34 +131,34 @@ func (lexer *Lexer) parseMultiCahrToken(char *rune) any {
 			return nil
 		default:
 			return LexerError{Line: lexer.line, Position: lexer.current, Message: fmt.Sprintf("Unknown token: %c", *char)}
-			}	
-		} 
-		return nil
+		}
+	}
+	return nil
 }
 
 func (lexer *Lexer) parseString(char *rune) (grammar.Token, grammar.LoxError) {
 	buff := bytes.NewBufferString("")
 
-	for lexer.current <= len(lexer.Source) - 1 {
+	for lexer.current <= len(lexer.Source)-1 {
 		*char = lexer.consume()
 		switch *char {
 		case '"':
 			return grammar.Token{TokenType: grammar.STRING, Lexeme: buff.String()}, nil
 		case '\n':
 			lexer.line++
-		default :
+		default:
 			buff.WriteRune(*char)
 		}
 	}
-	return grammar.Token{}, LexerError{Line: lexer.line, Position: lexer.current,  Message: "Unterminated string"}
+	return grammar.Token{}, LexerError{Line: lexer.line, Position: lexer.current, Message: "Unterminated string"}
 }
 
 func (lexer *Lexer) parseNumerics(char *rune) grammar.Token {
 	buff := bytes.NewBufferString("")
 	buff.WriteRune(*char)
-	for lexer.current <= len(lexer.Source) - 1 {
+	for lexer.current <= len(lexer.Source)-1 {
 		*char = lexer.consume()
-		if (parseDigit(char)) {
+		if parseDigit(char) {
 			buff.WriteRune(*char)
 		} else {
 			break
@@ -167,9 +167,9 @@ func (lexer *Lexer) parseNumerics(char *rune) grammar.Token {
 
 	if *char == '.' {
 		buff.WriteRune(*char)
-		for lexer.current <= len(lexer.Source) - 1 {
+		for lexer.current <= len(lexer.Source)-1 {
 			*char = lexer.consume()
-			if (parseDigit(char)) {
+			if parseDigit(char) {
 				buff.WriteRune(*char)
 			} else {
 				break
@@ -177,20 +177,20 @@ func (lexer *Lexer) parseNumerics(char *rune) grammar.Token {
 		}
 	}
 
-	if (!parseDigit(char)) {
+	if !parseDigit(char) {
 		lexer.current--
 	}
 
 	value, _ := strconv.ParseFloat(buff.String(), 64)
- 	return grammar.Token{TokenType: grammar.NUMBER, Lexeme: value}
+	return grammar.Token{TokenType: grammar.NUMBER, Lexeme: value}
 }
 
 func (lexer *Lexer) parseIdentifiers(char *rune) grammar.Token {
 	buff := bytes.NewBufferString("")
 	buff.WriteRune(*char)
-	for lexer.current <= len(lexer.Source) - 1 {
+	for lexer.current <= len(lexer.Source)-1 {
 		*char = lexer.consume()
-		if (parseDigit(char) || parseChar(char)) {
+		if parseDigit(char) || parseChar(char) {
 			buff.WriteRune(*char)
 		} else {
 			lexer.current--
@@ -202,12 +202,12 @@ func (lexer *Lexer) parseIdentifiers(char *rune) grammar.Token {
 	keyword, ok := grammar.KEYWORDS[tokenValue]
 	if ok {
 		return grammar.Token{TokenType: keyword, Lexeme: tokenValue}
-	} 
+	}
 	return grammar.Token{TokenType: grammar.IDENTIFIER, Lexeme: tokenValue}
 }
 
 func (lexer *Lexer) parseSingleLineComments(char *rune) {
-	for lexer.current <= len(lexer.Source) - 1 {
+	for lexer.current <= len(lexer.Source)-1 {
 		*char = lexer.consume()
 		if *char == '\n' {
 			lexer.line++
@@ -217,7 +217,7 @@ func (lexer *Lexer) parseSingleLineComments(char *rune) {
 }
 
 func (lexer *Lexer) parseMultilineLineComments(char *rune) {
-	for lexer.current <= len(lexer.Source) - 1 {
+	for lexer.current <= len(lexer.Source)-1 {
 		*char = lexer.consume()
 		if *char == '\n' {
 			lexer.line++
@@ -228,7 +228,7 @@ func (lexer *Lexer) parseMultilineLineComments(char *rune) {
 		}
 		if *char == '*' && lexer.lookahead() == '/' {
 			*char = lexer.consume()
-			return 
+			return
 		}
 	}
 }
