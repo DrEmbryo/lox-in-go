@@ -65,6 +65,10 @@ func (printer *AstPrinter) printNode(stmt grammar.Statement) string {
 	case grammar.GroupingExpression:
 		expr := printer.printNode(stmtType.Expression)
 		return makeTemplateStr(nodeType, expr)
+	case grammar.AssignmentExpression:
+		token := printer.tokenPrinter.printToken(stmtType.Name)
+		expr := printer.printNode(stmtType.Value)
+		return makeTemplateStr(nodeType, token, expr)
 	default:
 		return nodeType
 	}
