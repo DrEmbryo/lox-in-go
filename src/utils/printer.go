@@ -2,12 +2,14 @@ package utils
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
 	"github.com/DrEmbryo/lox/src/grammar"
 )
 
 type AstPrinter struct {
-	leftPad int
+	leftPad      int
 	tokenPrinter TokenPrinter
 }
 
@@ -35,7 +37,7 @@ func (printer *AstPrinter) printNode(stmt grammar.Statement) string {
 	case grammar.ConditionalStatement:
 		return fmt.Sprintf("%T =>\n condition [%v]\n then branch [%v]\n else branch [%v]\n", stmtType, printer.printNode(stmtType.Condition), printer.printNode(stmtType.ThenBranch), printer.printNode(stmtType.ElseBranch))
 	case grammar.ExpressionStatement:
-		return fmt.Sprintf("%T =>\n expression [%v]\n", stmtType, printer.printNode(stmtType.Expression) )
+		return fmt.Sprintf("%T =>\n expression [%v]\n", stmtType, printer.printNode(stmtType.Expression))
 	case grammar.UnaryExpression:
 		return fmt.Sprintf("%T =>\n operator [%v]\n right hand expression [%v]\n", stmtType, printer.tokenPrinter.printToken(stmtType.Operator), printer.printNode(stmtType.Right))
 	case grammar.BinaryExpression:
@@ -53,12 +55,14 @@ func (printer *AstPrinter) printNode(stmt grammar.Statement) string {
 
 func (printer *TokenPrinter) Print(tokens []grammar.Token) {
 	fmt.Println("Tokens generated from source:")
+	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
 	for _, token := range tokens {
-		fmt.Println(printer.printToken(token))
+		fmt.Fprintln(writer, printer.printToken(token))
 	}
-	fmt.Println("")
+	writer.Flush()
+	fmt.Println()
 }
 
 func (printer *TokenPrinter) printToken(token grammar.Token) string {
-	return fmt.Sprintf("type [%v] lexeme [%v] literal [%v]", token.TokenType, token.Lexeme, token.Literal)
+	return fmt.Sprintf("type [%v]\t lexeme [%v]\t literal [%v]", token.TokenType, token.Lexeme, token.Literal)
 }
