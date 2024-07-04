@@ -10,8 +10,6 @@ import (
 )
 
 type AstPrinter struct {
-	leftPad      int
-	tokenPrinter TokenPrinter
 }
 
 type TokenPrinter struct {
@@ -20,71 +18,79 @@ type TokenPrinter struct {
 func (printer *AstPrinter) Print(stmts []grammar.Statement) {
 	fmt.Println("Ast generated from tokens:")
 	for _, stmt := range stmts {
-		printer.leftPad = -1
-		fmt.Println(printer.printNode(stmt))
+		offset := 0
+		fmt.Println(printer.printNode(offset, stmt))
 	}
 	fmt.Println("")
 }
 
-func (printer *AstPrinter) printNode(stmt grammar.Statement) string {
+func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string {
 	nodeType := fmt.Sprintf("%T", stmt)
 	switch stmtType := stmt.(type) {
+	case grammar.Token:
+		return makeTemplateStr(offset, nodeType, fmt.Sprintf("type [%v] lexeme [%v] literal [%v]", stmtType.TokenType, stmtType.Lexeme, stmtType.Literal))
 	case grammar.VariableDeclarationStatement:
-		token := printer.tokenPrinter.printToken(stmtType.Name)
-		initExpr := printer.printNode(stmtType.Initializer)
-		return makeTemplateStr(nodeType, token, initExpr)
+		initExpr := printer.printNode(offset+1, stmtType.Initializer)
+		token := printer.printNode(offset+1, stmtType.Name)
+		return makeTemplateStr(offset, nodeType, token, initExpr)
 	case grammar.PrintStatement:
-		value := printer.printNode(stmtType.Value)
-		return makeTemplateStr(nodeType, value)
+		value := printer.printNode(offset+1, stmtType.Value)
+		return makeTemplateStr(offset, nodeType, value)
 	case grammar.BlockScopeStatement:
-		stmts := printer.printNode(stmtType.Statements)
-		return makeTemplateStr(nodeType, stmts)
+		stmts := printer.printNode(offset+1, stmtType.Statements)
+		return makeTemplateStr(offset, nodeType, stmts)
 	case grammar.ConditionalStatement:
-		condition := printer.printNode(stmtType.Condition)
-		thenBranch := printer.printNode(stmtType.ThenBranch)
-		elseBranch := printer.printNode(stmtType.ElseBranch)
-		return makeTemplateStr(nodeType, condition, thenBranch, elseBranch)
+		condition := printer.printNode(offset+1, stmtType.Condition)
+		thenBranch := printer.printNode(offset+1, stmtType.ThenBranch)
+		elseBranch := printer.printNode(offset+1, stmtType.ElseBranch)
+		return makeTemplateStr(offset, nodeType, condition, thenBranch, elseBranch)
 	case grammar.ExpressionStatement:
-		expr := printer.printNode(stmtType.Expression)
-		return makeTemplateStr(nodeType, expr)
+		expr := printer.printNode(offset+1, stmtType.Expression)
+		return makeTemplateStr(offset, nodeType, expr)
 	case grammar.UnaryExpression:
-		token := printer.tokenPrinter.printToken(stmtType.Operator)
-		rightExpr := printer.printNode(stmtType.Right)
-		return makeTemplateStr(nodeType, token, rightExpr)
+		token := printer.printNode(offset+1, stmtType.Operator)
+		rightExpr := printer.printNode(offset+1, stmtType.Right)
+		return makeTemplateStr(offset, nodeType, token, rightExpr)
 	case grammar.BinaryExpression:
-		leftExpr := printer.printNode(stmtType.Left)
-		operator := printer.tokenPrinter.printToken(stmtType.Operator)
-		rightExpr := printer.printNode(stmtType.Right)
-		return makeTemplateStr(nodeType, leftExpr, operator, rightExpr)
+		leftExpr := printer.printNode(offset+1, stmtType.Left)
+		operator := printer.printNode(offset+1, stmtType.Operator)
+		rightExpr := printer.printNode(offset+1, stmtType.Right)
+		return makeTemplateStr(offset, nodeType, leftExpr, operator, rightExpr)
 	case grammar.LiteralExpression:
 		literal := fmt.Sprintf("literal [%v]", stmtType.Literal)
-		return makeTemplateStr(nodeType, literal)
+		return makeTemplateStr(offset, nodeType, literal)
 	case grammar.VariableDeclaration:
-		token := printer.tokenPrinter.printToken(stmtType.Name)
-		return makeTemplateStr(nodeType, token)
+		token := printer.printNode(offset+1, stmtType.Name)
+		return makeTemplateStr(offset, nodeType, token)
 	case grammar.GroupingExpression:
-		expr := printer.printNode(stmtType.Expression)
-		return makeTemplateStr(nodeType, expr)
+		expr := printer.printNode(offset+1, stmtType.Expression)
+		return makeTemplateStr(offset, nodeType, expr)
 	case grammar.AssignmentExpression:
-		token := printer.tokenPrinter.printToken(stmtType.Name)
-		expr := printer.printNode(stmtType.Value)
-		return makeTemplateStr(nodeType, token, expr)
+		token := printer.printNode(offset+1, stmtType.Name)
+		expr := printer.printNode(offset+1, stmtType.Value)
+		return makeTemplateStr(offset, nodeType, token, expr)
 	default:
 		return nodeType
 	}
 }
 
-func makeTemplateStr(args ...string) string {
+func makeTemplateStr(offset int, args ...string) string {
 	var builder strings.Builder
 	for index, arg := range args {
 		if index == 0 {
-			builder.WriteString(fmt.Sprintf("[%s] => { ", arg))
+			builder.WriteString(fmt.Sprintf("[%s] => {\n", arg))
 		} else {
-			builder.WriteString(fmt.Sprintf("%s ", arg))
+			builder.WriteString(offsetTemplateStr("", offset))
+			builder.WriteString(fmt.Sprintf("%s\n", arg))
 		}
 	}
+	builder.WriteString(offsetTemplateStr("", offset))
 	builder.WriteString("}")
 	return builder.String()
+}
+
+func offsetTemplateStr(str string, offset int) string {
+	return fmt.Sprintf("%*s", offset, str)
 }
 
 func (printer *TokenPrinter) Print(tokens []grammar.Token) {

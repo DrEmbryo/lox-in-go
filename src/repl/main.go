@@ -23,7 +23,7 @@ func main() {
 	var source string
 	if len(os.Args) < 2 || strings.Contains(os.Args[1], "-") {
 		options.Parse(os.Args[1:])
-		fmt.Println("Lox REPL 0.3: ")
+		fmt.Println("Lox REPL 0.4: ")
 		for {
 			reader := bufio.NewReader(os.Stdin)
 			fmt.Print("> ")
