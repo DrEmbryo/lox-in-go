@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/DrEmbryo/lox/src/grammar"
@@ -19,38 +20,67 @@ type TokenPrinter struct {
 func (printer *AstPrinter) Print(stmts []grammar.Statement) {
 	fmt.Println("Ast generated from tokens:")
 	for _, stmt := range stmts {
-		printer.leftPad = 0
+		printer.leftPad = -1
 		fmt.Println(printer.printNode(stmt))
 	}
 	fmt.Println("")
 }
 
 func (printer *AstPrinter) printNode(stmt grammar.Statement) string {
-	printer.leftPad++
+	nodeType := fmt.Sprintf("%T", stmt)
 	switch stmtType := stmt.(type) {
 	case grammar.VariableDeclarationStatement:
-		return fmt.Sprintf("%T =>\n token [%v]\n init expression [%v]\n", stmt, printer.tokenPrinter.printToken(stmtType.Name), printer.printNode(stmtType.Initializer))
+		token := printer.tokenPrinter.printToken(stmtType.Name)
+		initExpr := printer.printNode(stmtType.Initializer)
+		return makeTemplateStr(nodeType, token, initExpr)
 	case grammar.PrintStatement:
-		return fmt.Sprintf("%T =>\n value [%v]\n", stmtType, printer.printNode(stmtType.Value))
+		value := printer.printNode(stmtType.Value)
+		return makeTemplateStr(nodeType, value)
 	case grammar.BlockScopeStatement:
-		return fmt.Sprintf("%T =>\n ", stmtType)
+		stmts := printer.printNode(stmtType.Statements)
+		return makeTemplateStr(nodeType, stmts)
 	case grammar.ConditionalStatement:
-		return fmt.Sprintf("%T =>\n condition [%v]\n then branch [%v]\n else branch [%v]\n", stmtType, printer.printNode(stmtType.Condition), printer.printNode(stmtType.ThenBranch), printer.printNode(stmtType.ElseBranch))
+		condition := printer.printNode(stmtType.Condition)
+		thenBranch := printer.printNode(stmtType.ThenBranch)
+		elseBranch := printer.printNode(stmtType.ElseBranch)
+		return makeTemplateStr(nodeType, condition, thenBranch, elseBranch)
 	case grammar.ExpressionStatement:
-		return fmt.Sprintf("%T =>\n expression [%v]\n", stmtType, printer.printNode(stmtType.Expression))
+		expr := printer.printNode(stmtType.Expression)
+		return makeTemplateStr(nodeType, expr)
 	case grammar.UnaryExpression:
-		return fmt.Sprintf("%T =>\n operator [%v]\n right hand expression [%v]\n", stmtType, printer.tokenPrinter.printToken(stmtType.Operator), printer.printNode(stmtType.Right))
+		token := printer.tokenPrinter.printToken(stmtType.Operator)
+		rightExpr := printer.printNode(stmtType.Right)
+		return makeTemplateStr(nodeType, token, rightExpr)
 	case grammar.BinaryExpression:
-		return fmt.Sprintf("%T =>\n left hand expression [%v]\n operator [%v]\n right hand expression [%v]", stmtType, printer.printNode(stmtType.Left), printer.tokenPrinter.printToken(stmtType.Operator), printer.printNode(stmtType.Right))
+		leftExpr := printer.printNode(stmtType.Left)
+		operator := printer.tokenPrinter.printToken(stmtType.Operator)
+		rightExpr := printer.printNode(stmtType.Right)
+		return makeTemplateStr(nodeType, leftExpr, operator, rightExpr)
 	case grammar.LiteralExpression:
-		return fmt.Sprintf("%T => literal [%v]", stmtType, stmtType.Literal)
+		literal := fmt.Sprintf("literal [%v]", stmtType.Literal)
+		return makeTemplateStr(nodeType, literal)
 	case grammar.VariableDeclaration:
-		return fmt.Sprintf("%T => token [%v]", stmtType, printer.tokenPrinter.printToken(stmtType.Name))
+		token := printer.tokenPrinter.printToken(stmtType.Name)
+		return makeTemplateStr(nodeType, token)
 	case grammar.GroupingExpression:
-		return fmt.Sprintf("%T =>\n expression [%v]\n", stmtType, printer.printNode(stmtType.Expression))
+		expr := printer.printNode(stmtType.Expression)
+		return makeTemplateStr(nodeType, expr)
 	default:
-		return fmt.Sprintf("%T", stmtType)
+		return nodeType
 	}
+}
+
+func makeTemplateStr(args ...string) string {
+	var builder strings.Builder
+	for index, arg := range args {
+		if index == 0 {
+			builder.WriteString(fmt.Sprintf("[%s] => { ", arg))
+		} else {
+			builder.WriteString(fmt.Sprintf("%s ", arg))
+		}
+	}
+	builder.WriteString("}")
+	return builder.String()
 }
 
 func (printer *TokenPrinter) Print(tokens []grammar.Token) {
@@ -64,5 +94,5 @@ func (printer *TokenPrinter) Print(tokens []grammar.Token) {
 }
 
 func (printer *TokenPrinter) printToken(token grammar.Token) string {
-	return fmt.Sprintf("type [%v]\t lexeme [%v]\t literal [%v]", token.TokenType, token.Lexeme, token.Literal)
+	return fmt.Sprintf("%T => type [%v]\t lexeme [%v]\t literal [%v]", token, token.TokenType, token.Lexeme, token.Literal)
 }
