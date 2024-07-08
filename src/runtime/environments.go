@@ -11,8 +11,9 @@ type Environment struct {
 	Parent *Environment
 }
 
-func (env *Environment) defineEnvValue(name string, value any) {
-	env.Values[name] = value
+func (env *Environment) defineEnvValue(name grammar.Token, value any) {
+	field := fmt.Sprintf("%s", name.Lexeme)
+	env.Values[field] = value
 }
 
 func (env *Environment) getEnvValue(name grammar.Token) (any, grammar.LoxError) {

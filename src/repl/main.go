@@ -69,8 +69,9 @@ func eval(source string, options *flag.FlagSet) {
 		printer := utils.AstPrinter{}
 		printer.Print(stmts)
 	}
-	Interpreter := runtime.Interpreter{Env: runtime.Environment{Values: make(map[string]any), Parent: nil}}
-	errs := Interpreter.Interpret(stmts)
+	env := runtime.Environment{Values: make(map[string]any), Parent: nil}
+	interpreter := runtime.Interpreter{Env: env}
+	errs := interpreter.Interpret(stmts)
 	if len(errs) > 0 {
 		for _, e := range errs {
 			grammar.LoxError.Print(e)

@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/DrEmbryo/lox/src/grammar"
@@ -27,8 +28,12 @@ func (parser *Parser) lookbehind() grammar.Token {
 	return token
 }
 
+func (parser *Parser) compareTypes(tokenType int) bool {
+	return tokenType != grammar.EOF && parser.lookahead().TokenType == tokenType
+}
+
 func (parser *Parser) expect(tokenType int, message string) grammar.LoxError {
-	if tokenType != grammar.EOF && parser.lookahead().TokenType == tokenType {
+	if parser.compareTypes(tokenType) {
 		parser.current++
 		return nil
 	}
@@ -37,7 +42,7 @@ func (parser *Parser) expect(tokenType int, message string) grammar.LoxError {
 
 func (parser *Parser) matchToken(tokenTypes ...int) bool {
 	for _, tokenType := range tokenTypes {
-		if tokenType != grammar.EOF && parser.lookahead().TokenType == tokenType {
+		if parser.compareTypes(tokenType) {
 			parser.current++
 			return true
 		}
@@ -70,6 +75,10 @@ func (parser *Parser) statement() (grammar.Statement, grammar.LoxError) {
 		return parser.PrintStatement()
 	case parser.matchToken(grammar.LEFT_BRACE):
 		return parser.blockStatement()
+	case parser.matchToken(grammar.WHILE):
+		return parser.whileStatement()
+	case parser.matchToken(grammar.FOR):
+		return parser.forStatement()
 	case parser.matchToken(grammar.IF):
 		return parser.conditionalStatement()
 	default:
@@ -83,12 +92,19 @@ func (parser *Parser) conditionalStatement() (grammar.Statement, grammar.LoxErro
 	var elseBranch grammar.Statement
 	var err grammar.LoxError
 
-	parser.expect(grammar.RIGHT_PAREN, "Expect '(' before condition inside 'if' statement")
+	err = parser.expect(grammar.RIGHT_PAREN, "Expect '(' before condition inside 'if' statement")
+	if err != nil {
+		return nil, err
+	}
 	condition, err = parser.expression()
 	if err != nil {
 		return nil, err
 	}
-	parser.expect(grammar.LEFT_PAREN, "Expect ')' after condition inside 'if' statement")
+
+	err = parser.expect(grammar.LEFT_PAREN, "Expect ')' after condition inside 'if' statement")
+	if err != nil {
+		return nil, err
+	}
 
 	thenBranch, err = parser.statement()
 	if err != nil {
@@ -108,7 +124,7 @@ func (parser *Parser) conditionalStatement() (grammar.Statement, grammar.LoxErro
 func (parser *Parser) blockStatement() (grammar.Statement, grammar.LoxError) {
 	statements := make([]grammar.Statement, 0)
 
-	for parser.lookahead().TokenType != grammar.EOF && parser.lookahead().TokenType != grammar.RIGHT_BRACE {
+	for !parser.compareTypes(grammar.RIGHT_BRACE) {
 		stmt, err := parser.declaration()
 		if err != nil {
 			return nil, err
@@ -128,6 +144,88 @@ func (parser *Parser) PrintStatement() (grammar.Statement, grammar.LoxError) {
 	return grammar.PrintStatement{Value: value}, parser.expect(grammar.SEMICOLON, "Expect ';' after value")
 }
 
+func (parser *Parser) whileStatement() (grammar.Statement, grammar.LoxError) {
+	err := parser.expect(grammar.LEFT_PAREN, "Expect '(' after 'while' keyword")
+	if err != nil {
+		return nil, err
+	}
+
+	condition, err := parser.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	err = parser.expect(grammar.RIGHT_PAREN, "Expect ')' after while loop condition")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := parser.statement()
+
+	return grammar.WhileLoopStatement{Condition: condition, Body: body}, err
+}
+
+func (parser *Parser) forStatement() (grammar.Statement, grammar.LoxError) {
+	parser.expect(grammar.LEFT_PAREN, "Expect '(' after 'for' keyword")
+
+	var initializer grammar.Statement
+	var err grammar.LoxError
+	switch {
+	case parser.matchToken(grammar.SEMICOLON):
+		initializer = nil
+	case parser.matchToken(grammar.VAR):
+		initializer, err = parser.variableDeclaration()
+	default:
+		initializer, err = parser.expressionStatement()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var condition grammar.Expression
+	if !parser.compareTypes(grammar.SEMICOLON) {
+		condition, err = parser.expression()
+	}
+	if err != nil {
+		return nil, err
+	}
+	parser.expect(grammar.SEMICOLON, "Expect ';' after for loop condition")
+
+	var increment grammar.Expression
+	if !parser.compareTypes(grammar.RIGHT_PAREN) {
+		increment, err = parser.expression()
+	}
+	if err != nil {
+		return nil, err
+	}
+	parser.expect(grammar.RIGHT_PAREN, "Expect ')' after for loop increment")
+
+	body, err := parser.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	if increment != nil {
+		stmts := make([]grammar.Statement, 2)
+		stmts = append(stmts, body, grammar.ExpressionStatement{Expression: increment})
+		body = grammar.BlockScopeStatement{Statements: stmts}
+	}
+
+	if condition == nil {
+		condition = grammar.LiteralExpression{Literal: true}
+	}
+
+	body = grammar.WhileLoopStatement{Condition: condition, Body: body}
+
+	if initializer != nil {
+		stmts := make([]grammar.Statement, 2)
+		stmts = append(stmts, initializer, body)
+		body = grammar.BlockScopeStatement{Statements: stmts}
+	}
+
+	return body, err
+}
+
 func (parser *Parser) expressionStatement() (grammar.Statement, grammar.LoxError) {
 	expr, err := parser.expression()
 	if err != nil {
@@ -142,12 +240,15 @@ func (parser *Parser) expression() (grammar.Expression, grammar.LoxError) {
 }
 
 func (parser *Parser) assignment() (grammar.Expression, grammar.LoxError) {
-	expr, err := parser.equality()
+	expr, err := parser.logicOr()
 	if err != nil {
 		return nil, err
 	}
+	//sould be assignmentExpression instead get expressionStatement
+	fmt.Printf("%T \n", expr)
 
 	if parser.matchToken(grammar.EQUAL) {
+		fmt.Println("assignment")
 		equal := parser.lookbehind()
 		value, err := parser.assignment()
 		if err != nil {
@@ -162,6 +263,38 @@ func (parser *Parser) assignment() (grammar.Expression, grammar.LoxError) {
 		}
 	}
 	return expr, nil
+}
+
+func (parser *Parser) logicOr() (grammar.Expression, grammar.LoxError) {
+	leftExpr, err := parser.logicAnd()
+	if err != nil {
+		return nil, err
+	}
+
+	for parser.matchToken(grammar.OR) {
+		operator := parser.lookbehind()
+		rightExpr, err := parser.logicAnd()
+		leftExpr = grammar.LogicExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
+		return leftExpr, err
+	}
+
+	return leftExpr, err
+}
+
+func (parser *Parser) logicAnd() (grammar.Expression, grammar.LoxError) {
+	leftExpr, err := parser.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for parser.matchToken(grammar.AND) {
+		operator := parser.lookbehind()
+		rightExpr, err := parser.equality()
+		leftExpr = grammar.LogicExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
+		return leftExpr, err
+	}
+
+	return leftExpr, err
 }
 
 func (parser *Parser) declaration() (grammar.Statement, grammar.LoxError) {
@@ -256,7 +389,6 @@ func (parser *Parser) unary() (grammar.Expression, grammar.LoxError) {
 }
 
 func (parser *Parser) primary() (grammar.Expression, grammar.LoxError) {
-
 	switch {
 	case parser.matchToken(grammar.FALSE):
 		return grammar.LiteralExpression{Literal: false}, nil

@@ -99,14 +99,14 @@ func (interpreter *Interpreter) binaryExpr(expr grammar.BinaryExpression) (any, 
 		if err != nil {
 			return nil, err
 		}
-		return left.(float64) > right.(float64), nil
+		return left.(float64) < right.(float64), nil
 
 	case grammar.LESS_EQUAL:
 		err := checkNumericOperands(expr.Operator, left, right)
 		if err != nil {
 			return nil, err
 		}
-		return left.(float64) >= right.(float64), nil
+		return left.(float64) <= right.(float64), nil
 
 	case grammar.BANG_EQUAL:
 		return !checkValueEquality(left, right), nil
@@ -115,6 +115,23 @@ func (interpreter *Interpreter) binaryExpr(expr grammar.BinaryExpression) (any, 
 	}
 
 	return nil, nil
+}
+
+func (interpreter *Interpreter) logicalExpr(expr grammar.LogicExpression) (any, grammar.LoxError) {
+	left, err := interpreter.evaluate(expr.Left)
+	if err != nil {
+		return nil, err
+	}
+
+	if expr.Operator.TokenType == grammar.OR {
+		if castToBool(left) {
+			return left, nil
+		} else if !castToBool(left) {
+			return left, nil
+		}
+	}
+
+	return interpreter.evaluate(expr.Right)
 }
 
 func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.LoxError) {
@@ -131,6 +148,8 @@ func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.
 		return interpreter.varExpr(exprType)
 	case grammar.AssignmentExpression:
 		return interpreter.assignmentExpr(exprType)
+	case grammar.LogicExpression:
+		return interpreter.logicalExpr(exprType)
 	default:
 		fmt.Printf("%T", exprType)
 	}
@@ -147,12 +166,28 @@ func (interpreter *Interpreter) printStmt(stmt grammar.PrintStatement) grammar.L
 	return nil
 }
 
-func (interpreter *Interpreter) expressionStmt(stmt grammar.Statement) grammar.LoxError {
-	_, err := interpreter.evaluate(stmt)
+func (interpreter *Interpreter) expressionStmt(stmt grammar.ExpressionStatement) grammar.LoxError {
+	_, err := interpreter.evaluate(stmt.Expression)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (interpreter *Interpreter) whileStmt(stmt grammar.WhileLoopStatement) grammar.LoxError {
+	expr, err := interpreter.evaluate(stmt.Condition)
+	if err != nil {
+		return err
+	}
+
+	for castToBool(expr) {
+		expr, _ = interpreter.evaluate(stmt.Condition)
+		err = interpreter.execute(stmt.Body)
+		if err != nil {
+			return err
+		}
+	}
+	return err
 }
 
 func (interpreter *Interpreter) execute(stmt grammar.Statement) grammar.LoxError {
@@ -167,6 +202,8 @@ func (interpreter *Interpreter) execute(stmt grammar.Statement) grammar.LoxError
 		return interpreter.blockStmt(stmtType)
 	case grammar.ConditionalStatement:
 		return interpreter.conditionalStmt(stmtType)
+	case grammar.WhileLoopStatement:
+		return interpreter.whileStmt(stmtType)
 	}
 
 	return nil
@@ -226,10 +263,9 @@ func (interpreter *Interpreter) varStmt(stmt grammar.VariableDeclarationStatemen
 	var err grammar.LoxError
 	if stmt.Initializer != nil {
 		value, err = interpreter.evaluate(stmt.Initializer)
-		interpreter.Env.defineEnvValue(fmt.Sprintf("%s", stmt.Name.Lexeme), value)
-		return err
 	}
-	return RuntimeError{Token: stmt.Name, Message: "Expect initialization of variable"}
+	interpreter.Env.defineEnvValue(stmt.Name, value)
+	return err
 }
 
 func (interpreter *Interpreter) varExpr(expr grammar.VariableDeclaration) (any, grammar.LoxError) {

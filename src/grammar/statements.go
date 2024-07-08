@@ -24,3 +24,8 @@ type ConditionalStatement struct {
 	ThenBranch Statement
 	ElseBranch Statement
 }
+
+type WhileLoopStatement struct {
+	Condition Expression
+	Body      Statement
+}
