@@ -117,6 +117,23 @@ func (interpreter *Interpreter) binaryExpr(expr grammar.BinaryExpression) (any, 
 	return nil, nil
 }
 
+func (interpreter *Interpreter) logicalExpr(expr grammar.LogicExpression) (any, grammar.LoxError) {
+	left, err := interpreter.evaluate(expr.Left)
+	if err != nil {
+		return nil, err
+	}
+
+	if expr.Operator.TokenType == grammar.OR {
+		if castToBool(left) {
+			return left, nil
+		} else if !castToBool(left) {
+			return left, nil
+		}
+	}
+
+	return interpreter.evaluate(expr.Right)
+}
+
 func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.LoxError) {
 	switch exprType := expr.(type) {
 	case grammar.LiteralExpression:
@@ -131,6 +148,8 @@ func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.
 		return interpreter.varExpr(exprType)
 	case grammar.AssignmentExpression:
 		return interpreter.assignmentExpr(exprType)
+	case grammar.LogicExpression:
+		return interpreter.logicalExpr(exprType)
 	default:
 		fmt.Printf("%T", exprType)
 	}

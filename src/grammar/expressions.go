@@ -29,3 +29,9 @@ type AssignmentExpression struct {
 	Name  Token
 	Value Expression
 }
+
+type LogicExpression struct {
+	Left     Expression
+	Operator Token
+	Right    Expression
+}

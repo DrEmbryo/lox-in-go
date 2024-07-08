@@ -142,7 +142,7 @@ func (parser *Parser) expression() (grammar.Expression, grammar.LoxError) {
 }
 
 func (parser *Parser) assignment() (grammar.Expression, grammar.LoxError) {
-	expr, err := parser.equality()
+	expr, err := parser.logicOr()
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +162,38 @@ func (parser *Parser) assignment() (grammar.Expression, grammar.LoxError) {
 		}
 	}
 	return expr, nil
+}
+
+func (parser *Parser) logicOr() (grammar.Expression, grammar.LoxError) {
+	leftExpr, err := parser.logicAnd()
+	if err != nil {
+		return nil, err
+	}
+
+	for parser.matchToken(grammar.OR) {
+		operator := parser.lookbehind()
+		rightExpr, err := parser.logicAnd()
+		leftExpr = grammar.LogicExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
+		return leftExpr, err
+	}
+
+	return leftExpr, err
+}
+
+func (parser *Parser) logicAnd() (grammar.Expression, grammar.LoxError) {
+	leftExpr, err := parser.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for parser.matchToken(grammar.AND) {
+		operator := parser.lookbehind()
+		rightExpr, err := parser.equality()
+		leftExpr = grammar.LogicExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
+		return leftExpr, err
+	}
+
+	return leftExpr, err
 }
 
 func (parser *Parser) declaration() (grammar.Statement, grammar.LoxError) {
