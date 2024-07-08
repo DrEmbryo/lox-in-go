@@ -166,8 +166,8 @@ func (interpreter *Interpreter) printStmt(stmt grammar.PrintStatement) grammar.L
 	return nil
 }
 
-func (interpreter *Interpreter) expressionStmt(stmt grammar.Statement) grammar.LoxError {
-	_, err := interpreter.evaluate(stmt)
+func (interpreter *Interpreter) expressionStmt(stmt grammar.ExpressionStatement) grammar.LoxError {
+	_, err := interpreter.evaluate(stmt.Expression)
 	if err != nil {
 		return err
 	}
@@ -262,10 +262,9 @@ func (interpreter *Interpreter) varStmt(stmt grammar.VariableDeclarationStatemen
 	var err grammar.LoxError
 	if stmt.Initializer != nil {
 		value, err = interpreter.evaluate(stmt.Initializer)
-		interpreter.Env.defineEnvValue(fmt.Sprintf("%s", stmt.Name.Lexeme), value)
-		return err
 	}
-	return RuntimeError{Token: stmt.Name, Message: "Expect initialization of variable"}
+	interpreter.Env.defineEnvValue(stmt.Name, value)
+	return err
 }
 
 func (interpreter *Interpreter) varExpr(expr grammar.VariableDeclaration) (any, grammar.LoxError) {
