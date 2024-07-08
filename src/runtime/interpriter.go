@@ -175,12 +175,13 @@ func (interpreter *Interpreter) expressionStmt(stmt grammar.ExpressionStatement)
 }
 
 func (interpreter *Interpreter) whileStmt(stmt grammar.WhileLoopStatement) grammar.LoxError {
-	expr, err := interpreter.evaluate(stmt.Expression)
+	expr, err := interpreter.evaluate(stmt.Condition)
 	if err != nil {
 		return err
 	}
 
 	for castToBool(expr) {
+		expr, _ = interpreter.evaluate(stmt.Condition)
 		err = interpreter.execute(stmt.Body)
 		if err != nil {
 			return err

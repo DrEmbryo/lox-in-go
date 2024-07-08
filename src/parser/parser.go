@@ -162,7 +162,7 @@ func (parser *Parser) whileStatement() (grammar.Statement, grammar.LoxError) {
 
 	body, err := parser.statement()
 
-	return grammar.WhileLoopStatement{Expression: condition, Body: body}, err
+	return grammar.WhileLoopStatement{Condition: condition, Body: body}, err
 }
 
 func (parser *Parser) forStatement() (grammar.Statement, grammar.LoxError) {
@@ -215,7 +215,7 @@ func (parser *Parser) forStatement() (grammar.Statement, grammar.LoxError) {
 		condition = grammar.LiteralExpression{Literal: true}
 	}
 
-	body = grammar.WhileLoopStatement{Expression: condition, Body: body}
+	body = grammar.WhileLoopStatement{Condition: condition, Body: body}
 
 	if initializer != nil {
 		stmts := make([]grammar.Statement, 2)

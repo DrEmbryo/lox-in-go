@@ -40,7 +40,7 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 		stmts := printer.printNode(offset+1, stmtType.Statements)
 		return makeTemplateStr(offset, nodeType, stmts)
 	case grammar.WhileLoopStatement:
-		expr := printer.printNode(offset+1, stmtType.Expression)
+		expr := printer.printNode(offset+1, stmtType.Condition)
 		body := printer.printNode(offset+1, stmtType.Body)
 		return makeTemplateStr(offset, nodeType, expr, body)
 	case grammar.ConditionalStatement:

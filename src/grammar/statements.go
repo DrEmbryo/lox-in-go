@@ -26,6 +26,6 @@ type ConditionalStatement struct {
 }
 
 type WhileLoopStatement struct {
-	Expression Expression
-	Body       Statement
+	Condition Expression
+	Body      Statement
 }

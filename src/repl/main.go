@@ -72,7 +72,6 @@ func eval(source string, options *flag.FlagSet) {
 	env := runtime.Environment{Values: make(map[string]any), Parent: nil}
 	interpreter := runtime.Interpreter{Env: env}
 	errs := interpreter.Interpret(stmts)
-	fmt.Println(env)
 	if len(errs) > 0 {
 		for _, e := range errs {
 			grammar.LoxError.Print(e)
