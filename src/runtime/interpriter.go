@@ -174,6 +174,21 @@ func (interpreter *Interpreter) expressionStmt(stmt grammar.Statement) grammar.L
 	return nil
 }
 
+func (interpreter *Interpreter) whileStmt(stmt grammar.WhileLoopStatement) grammar.LoxError {
+	expr, err := interpreter.evaluate(stmt.Expression)
+	if err != nil {
+		return err
+	}
+
+	for castToBool(expr) {
+		err = interpreter.execute(stmt.Body)
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
 func (interpreter *Interpreter) execute(stmt grammar.Statement) grammar.LoxError {
 	switch stmtType := stmt.(type) {
 	case grammar.PrintStatement:
@@ -186,6 +201,8 @@ func (interpreter *Interpreter) execute(stmt grammar.Statement) grammar.LoxError
 		return interpreter.blockStmt(stmtType)
 	case grammar.ConditionalStatement:
 		return interpreter.conditionalStmt(stmtType)
+	case grammar.WhileLoopStatement:
+		return interpreter.whileStmt(stmtType)
 	}
 
 	return nil

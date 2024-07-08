@@ -39,11 +39,19 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 	case grammar.BlockScopeStatement:
 		stmts := printer.printNode(offset+1, stmtType.Statements)
 		return makeTemplateStr(offset, nodeType, stmts)
+	case grammar.WhileLoopStatement:
+		expr := printer.printNode(offset+1, stmtType.Expression)
+		body := printer.printNode(offset+1, stmtType.Body)
+		return makeTemplateStr(offset, nodeType, expr, body)
 	case grammar.ConditionalStatement:
 		condition := printer.printNode(offset+1, stmtType.Condition)
 		thenBranch := printer.printNode(offset+1, stmtType.ThenBranch)
 		elseBranch := printer.printNode(offset+1, stmtType.ElseBranch)
 		return makeTemplateStr(offset, nodeType, condition, thenBranch, elseBranch)
+	case []grammar.Statement:
+		for _, statement := range stmtType {
+			return printer.printNode(offset+1, statement)
+		}
 	case grammar.ExpressionStatement:
 		expr := printer.printNode(offset+1, stmtType.Expression)
 		return makeTemplateStr(offset, nodeType, expr)
@@ -72,6 +80,7 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 	default:
 		return nodeType
 	}
+	return ""
 }
 
 func makeTemplateStr(offset int, args ...string) string {
