@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/DrEmbryo/lox/src/grammar"
@@ -73,12 +72,12 @@ func (parser *Parser) statement() (grammar.Statement, grammar.LoxError) {
 	switch {
 	case parser.matchToken(grammar.PRINT):
 		return parser.PrintStatement()
+	case parser.matchToken(grammar.LEFT_BRACE):
+		return parser.blockStatement()
 	case parser.matchToken(grammar.WHILE):
 		return parser.whileStatement()
 	case parser.matchToken(grammar.FOR):
 		return parser.forStatement()
-	case parser.matchToken(grammar.LEFT_BRACE):
-		return parser.blockStatement()
 	case parser.matchToken(grammar.IF):
 		return parser.conditionalStatement()
 	default:
@@ -144,7 +143,6 @@ func (parser *Parser) PrintStatement() (grammar.Statement, grammar.LoxError) {
 	return grammar.PrintStatement{Value: value}, parser.expect(grammar.SEMICOLON, "Expect ';' after value")
 }
 
-// missing ast node
 func (parser *Parser) whileStatement() (grammar.Statement, grammar.LoxError) {
 	err := parser.expect(grammar.LEFT_PAREN, "Expect '(' after 'while' keyword")
 	if err != nil {
@@ -162,7 +160,6 @@ func (parser *Parser) whileStatement() (grammar.Statement, grammar.LoxError) {
 	}
 
 	body, err := parser.statement()
-	fmt.Println(grammar.WhileLoopStatement{Expression: condition, Body: body})
 
 	return grammar.WhileLoopStatement{Expression: condition, Body: body}, err
 }
@@ -224,8 +221,6 @@ func (parser *Parser) forStatement() (grammar.Statement, grammar.LoxError) {
 		stmts = append(stmts, initializer, body)
 		body = grammar.BlockScopeStatement{Statements: stmts}
 	}
-
-	fmt.Println(body)
 
 	return body, err
 }

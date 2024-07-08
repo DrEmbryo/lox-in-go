@@ -99,14 +99,14 @@ func (interpreter *Interpreter) binaryExpr(expr grammar.BinaryExpression) (any, 
 		if err != nil {
 			return nil, err
 		}
-		return left.(float64) > right.(float64), nil
+		return left.(float64) < right.(float64), nil
 
 	case grammar.LESS_EQUAL:
 		err := checkNumericOperands(expr.Operator, left, right)
 		if err != nil {
 			return nil, err
 		}
-		return left.(float64) >= right.(float64), nil
+		return left.(float64) <= right.(float64), nil
 
 	case grammar.BANG_EQUAL:
 		return !checkValueEquality(left, right), nil
