@@ -49,9 +49,11 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 		elseBranch := printer.printNode(offset+1, stmtType.ElseBranch)
 		return makeTemplateStr(offset, nodeType, condition, thenBranch, elseBranch)
 	case []grammar.Statement:
+		var builder strings.Builder
 		for _, statement := range stmtType {
-			return printer.printNode(offset+1, statement)
+			builder.WriteString(printer.printNode(offset+1, statement))
 		}
+		return builder.String()
 	case grammar.ExpressionStatement:
 		expr := printer.printNode(offset+1, stmtType.Expression)
 		return makeTemplateStr(offset, nodeType, expr)
@@ -80,7 +82,6 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 	default:
 		return nodeType
 	}
-	return ""
 }
 
 func makeTemplateStr(offset int, args ...string) string {
