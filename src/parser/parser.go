@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/DrEmbryo/lox/src/grammar"
@@ -244,11 +243,8 @@ func (parser *Parser) assignment() (grammar.Expression, grammar.LoxError) {
 	if err != nil {
 		return nil, err
 	}
-	//sould be assignmentExpression instead get expressionStatement
-	fmt.Printf("%T \n", expr)
 
 	if parser.matchToken(grammar.EQUAL) {
-		fmt.Println("assignment")
 		equal := parser.lookbehind()
 		value, err := parser.assignment()
 		if err != nil {
