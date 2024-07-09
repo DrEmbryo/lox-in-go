@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/DrEmbryo/lox/src/grammar"
+	"github.com/DrEmbryo/lox/src/runtime"
 )
 
 type Parser struct {
@@ -381,7 +382,48 @@ func (parser *Parser) unary() (grammar.Expression, grammar.LoxError) {
 		rightExpr, err := parser.unary()
 		return grammar.UnaryExpression{Right: rightExpr, Operator: operator}, err
 	}
-	return parser.primary()
+	return parser.call()
+}
+
+func (parser *Parser) call() (grammar.Expression, grammar.LoxError) {
+	expr, err := parser.primary()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		if parser.matchToken(grammar.LEFT_PAREN) {
+			expr, err = parser.finishCall(expr)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			break
+		}
+	}
+
+	return expr, err
+}
+
+func (parser *Parser) finishCall(expr grammar.Expression) (grammar.Expression, grammar.LoxError) {
+	arguments := make([]grammar.Expression, 0)
+
+	if !parser.compareTypes(grammar.RIGHT_PAREN) {
+		for ok := true; ok; ok = !parser.matchToken(grammar.COMMA) {
+			if len(arguments) >= 255 {
+				return nil, runtime.RuntimeError{Token: parser.lookahead(), Message: "Can't have more than 255 arguments."}
+			}
+
+			expr, err := parser.expression()
+			if err != nil {
+				return nil, err
+			}
+
+			arguments = append(arguments, expr)
+		}
+	}
+
+	return grammar.CallExpression{Callee: expr, Paren: parser.lookahead(), Arguments: arguments}, parser.expect(grammar.RIGHT_PAREN, "Expect ')' after argument.")
 }
 
 func (parser *Parser) primary() (grammar.Expression, grammar.LoxError) {
