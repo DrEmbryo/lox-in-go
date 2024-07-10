@@ -2,12 +2,14 @@ package runtime
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/DrEmbryo/lox/src/grammar"
 )
 
 type Interpreter struct {
-	Env Environment
+	Env       Environment
+	globalEnv *Environment
 }
 
 func (interpreter *Interpreter) literalExpr(expr grammar.LiteralExpression) (any, grammar.LoxError) {
@@ -134,6 +136,36 @@ func (interpreter *Interpreter) logicalExpr(expr grammar.LogicExpression) (any, 
 	return interpreter.evaluate(expr.Right)
 }
 
+func (interpreter *Interpreter) callExpr(expr grammar.CallExpression) (any, grammar.LoxError) {
+	var function LoxCallable
+	callee, err := interpreter.evaluate(expr.Callee)
+	if err != nil {
+		return nil, err
+	}
+
+	switch calleeType := callee.(type) {
+	case LoxCallable:
+		function = calleeType
+	default:
+		return nil, RuntimeError{Token: expr.Paren, Message: "Calls available only for functions and classes"}
+	}
+
+	if len(expr.Arguments) != function.GetAirity() {
+		return nil, RuntimeError{Token: expr.Paren, Message: fmt.Sprintf("Expect %v arguments but got %v.", function.GetAirity(), len(expr.Arguments))}
+	}
+
+	arguments := make([]any, 0)
+	for argument := range expr.Arguments {
+		arg, err := interpreter.evaluate(argument)
+		if err != nil {
+			return nil, err
+		}
+		arguments = append(arguments, arg)
+	}
+
+	return function.Call(*interpreter, arguments), nil
+}
+
 func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.LoxError) {
 	switch exprType := expr.(type) {
 	case grammar.LiteralExpression:
@@ -248,6 +280,9 @@ func (interpreter *Interpreter) executeBlock(stmts []grammar.Statement, env Envi
 }
 
 func (interpreter *Interpreter) Interpret(statements []grammar.Statement) []grammar.LoxError {
+	interpreter.globalEnv = &interpreter.Env
+	interpreter.globalEnv.defineEnvValue(grammar.Token{Lexeme: "clock"}, NativeCall{Airity: 0, NativeCallFunc: func(a ...any) any { return time.Now() }})
+
 	errs := make([]grammar.LoxError, 0)
 	for _, stmt := range statements {
 		err := interpreter.execute(stmt)
