@@ -144,8 +144,8 @@ func (interpreter *Interpreter) callExpr(expr grammar.CallExpression) (any, gram
 	}
 
 	switch calleeType := callee.(type) {
-	case LoxCallable:
-		function = calleeType
+	case NativeCall:
+		function = &calleeType
 	default:
 		return nil, RuntimeError{Token: expr.Paren, Message: "Calls available only for functions and classes"}
 	}
@@ -182,6 +182,8 @@ func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.
 		return interpreter.assignmentExpr(exprType)
 	case grammar.LogicExpression:
 		return interpreter.logicalExpr(exprType)
+	case grammar.CallExpression:
+		return interpreter.callExpr(exprType)
 	default:
 		fmt.Printf("%T", exprType)
 	}
