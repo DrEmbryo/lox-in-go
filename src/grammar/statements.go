@@ -21,6 +21,11 @@ type FunctionDeclarationStatement struct {
 	Body   BlockScopeStatement
 }
 
+type ReturnStatement struct {
+	Keyword    Token
+	Expression Expression
+}
+
 type BlockScopeStatement struct {
 	Statements []Statement
 }

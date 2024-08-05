@@ -41,10 +41,12 @@ func (interpreter *Interpreter) unaryExpr(expr grammar.UnaryExpression) (any, gr
 
 func (interpreter *Interpreter) binaryExpr(expr grammar.BinaryExpression) (any, grammar.LoxError) {
 	left, err := interpreter.evaluate(expr.Left)
+	fmt.Printf("left: %v \n", left)
 	if err != nil {
 		return nil, err
 	}
 	right, err := interpreter.evaluate(expr.Right)
+	fmt.Printf("right: %v \n", right)
 	if err != nil {
 		return nil, err
 	}
@@ -59,11 +61,11 @@ func (interpreter *Interpreter) binaryExpr(expr grammar.BinaryExpression) (any, 
 
 	case grammar.PLUS:
 		if checkTypeEquality(left, right) {
-			switch left := left.(type) {
+			switch leftType := left.(type) {
 			case string:
 				return fmt.Sprintf("%s%s", left, right), nil
 			case float64:
-				return left + right.(float64), nil
+				return leftType + right.(float64), nil
 			}
 		}
 		return nil, RuntimeError{Token: expr.Operator, Message: "Operands must be two numbers or two strings."}
@@ -168,8 +170,6 @@ func (interpreter *Interpreter) callExpr(expr grammar.CallExpression) (any, gram
 
 func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.LoxError) {
 	switch exprType := expr.(type) {
-	case grammar.LiteralExpression:
-		return interpreter.literalExpr(exprType)
 	case grammar.GroupingExpression:
 		return interpreter.groupingExpr(exprType)
 	case grammar.UnaryExpression:
@@ -184,6 +184,8 @@ func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.
 		return interpreter.logicalExpr(exprType)
 	case grammar.CallExpression:
 		return interpreter.callExpr(exprType)
+	case grammar.LiteralExpression:
+		return interpreter.literalExpr(exprType)
 	default:
 		fmt.Printf("%T", exprType)
 	}
@@ -216,7 +218,7 @@ func (interpreter *Interpreter) whileStmt(stmt grammar.WhileLoopStatement) gramm
 
 	for castToBool(expr) {
 		expr, _ = interpreter.evaluate(stmt.Condition)
-		err = interpreter.execute(stmt.Body)
+		_, err = interpreter.execute(stmt.Body)
 		if err != nil {
 			return err
 		}
@@ -224,23 +226,29 @@ func (interpreter *Interpreter) whileStmt(stmt grammar.WhileLoopStatement) gramm
 	return err
 }
 
-func (interpreter *Interpreter) execute(stmt grammar.Statement) grammar.LoxError {
+func (interpreter *Interpreter) execute(stmt grammar.Statement) (any, grammar.LoxError) {
 	switch stmtType := stmt.(type) {
 	case grammar.PrintStatement:
-		return interpreter.printStmt(stmtType)
+		return nil, interpreter.printStmt(stmtType)
 	case grammar.ExpressionStatement:
-		return interpreter.expressionStmt(stmtType)
+		return nil, interpreter.expressionStmt(stmtType)
 	case grammar.VariableDeclarationStatement:
-		return interpreter.varStmt(stmtType)
+		return nil, interpreter.varStmt(stmtType)
 	case grammar.BlockScopeStatement:
 		return interpreter.blockStmt(stmtType)
 	case grammar.ConditionalStatement:
-		return interpreter.conditionalStmt(stmtType)
+		return nil, interpreter.conditionalStmt(stmtType)
 	case grammar.WhileLoopStatement:
-		return interpreter.whileStmt(stmtType)
+		return nil, interpreter.whileStmt(stmtType)
+	case grammar.ReturnStatement:
+		return interpreter.returnStmt(stmtType)
 	}
 
-	return nil
+	return nil, nil
+}
+
+func (interpreter *Interpreter) returnStmt(stmt grammar.ReturnStatement) (any, grammar.LoxError) {
+	return interpreter.evaluate(stmt.Expression)
 }
 
 func (interpreter *Interpreter) conditionalStmt(stmt grammar.ConditionalStatement) grammar.LoxError {
@@ -250,12 +258,12 @@ func (interpreter *Interpreter) conditionalStmt(stmt grammar.ConditionalStatemen
 	}
 
 	if castToBool(condition) {
-		err := interpreter.execute(stmt.ThenBranch)
+		_, err := interpreter.execute(stmt.ThenBranch)
 		if err != nil {
 			return err
 		}
 	} else if stmt.ElseBranch != nil {
-		err := interpreter.execute(stmt.ElseBranch)
+		_, err := interpreter.execute(stmt.ElseBranch)
 		if err != nil {
 			return err
 		}
@@ -263,22 +271,23 @@ func (interpreter *Interpreter) conditionalStmt(stmt grammar.ConditionalStatemen
 	return err
 }
 
-func (interpreter *Interpreter) blockStmt(stmt grammar.BlockScopeStatement) grammar.LoxError {
+func (interpreter *Interpreter) blockStmt(stmt grammar.BlockScopeStatement) (any, grammar.LoxError) {
 	parentEnv := interpreter.Env
 	env := Environment{Values: make(map[string]any), Parent: &parentEnv}
 	return interpreter.executeBlock(stmt.Statements, env)
 }
 
-func (interpreter *Interpreter) executeBlock(stmts []grammar.Statement, env Environment) grammar.LoxError {
+func (interpreter *Interpreter) executeBlock(stmts []grammar.Statement, env Environment) (any, grammar.LoxError) {
 	var err grammar.LoxError
+	var value any
 	parentEnv := interpreter.Env
 	interpreter.Env = env
 	for _, stmt := range stmts {
-		err = interpreter.execute(stmt)
+		value, err = interpreter.execute(stmt)
 	}
 
 	interpreter.Env = parentEnv
-	return err
+	return value, err
 }
 
 func (interpreter *Interpreter) Interpret(statements []grammar.Statement) []grammar.LoxError {
@@ -287,7 +296,7 @@ func (interpreter *Interpreter) Interpret(statements []grammar.Statement) []gram
 
 	errs := make([]grammar.LoxError, 0)
 	for _, stmt := range statements {
-		err := interpreter.execute(stmt)
+		_, err := interpreter.execute(stmt)
 		if err != nil {
 			errs = append(errs, err)
 		}

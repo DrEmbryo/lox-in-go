@@ -74,6 +74,8 @@ func (parser *Parser) statement() (grammar.Statement, grammar.LoxError) {
 	switch {
 	case parser.matchToken(grammar.PRINT):
 		return parser.PrintStatement()
+	case parser.matchToken(grammar.RETURN):
+		return parser.returnStatement()
 	case parser.matchToken(grammar.LEFT_BRACE):
 		return parser.blockStatement()
 	case parser.matchToken(grammar.WHILE):
@@ -85,6 +87,22 @@ func (parser *Parser) statement() (grammar.Statement, grammar.LoxError) {
 	default:
 		return parser.expressionStatement()
 	}
+}
+
+func (parser *Parser) returnStatement() (grammar.Statement, grammar.LoxError) {
+	var value any
+	var err grammar.LoxError
+
+	keyword := parser.lookbehind()
+
+	if !parser.compareTypes(grammar.SEMICOLON) {
+		value, err = parser.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return grammar.ReturnStatement{Keyword: keyword, Expression: value}, parser.expect(grammar.SEMICOLON, "Expect ';' after return value.")
 }
 
 func (parser *Parser) conditionalStatement() (grammar.Statement, grammar.LoxError) {

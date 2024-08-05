@@ -72,6 +72,9 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 	case grammar.VariableDeclaration:
 		token := printer.printNode(offset+1, stmtType.Name)
 		return makeTemplateStr(offset, nodeType, token)
+	case grammar.FunctionDeclarationStatement:
+		token := printer.printNode(offset+1, stmtType.Name)
+		return makeTemplateStr(offset, nodeType, token)
 	case grammar.GroupingExpression:
 		expr := printer.printNode(offset+1, stmtType.Expression)
 		return makeTemplateStr(offset, nodeType, expr)
@@ -106,13 +109,13 @@ func offsetTemplateStr(str string, offset int) string {
 func (printer *TokenPrinter) Print(tokens []grammar.Token) {
 	fmt.Println("Tokens generated from source:")
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-	for _, token := range tokens {
-		fmt.Fprintln(writer, printer.printToken(token))
+	for index, token := range tokens {
+		fmt.Fprintln(writer, printer.printToken(index, token))
 	}
 	writer.Flush()
 	fmt.Println()
 }
 
-func (printer *TokenPrinter) printToken(token grammar.Token) string {
-	return fmt.Sprintf("%T => type [%v]\t lexeme [%v]\t literal [%v]", token, token.TokenType, token.Lexeme, token.Literal)
+func (printer *TokenPrinter) printToken(index int, token grammar.Token) string {
+	return fmt.Sprintf("[%v]\t %T => type [%v]\t lexeme [%v]\t literal [%v]", index, token, token.TokenType, token.Lexeme, token.Literal)
 }

@@ -10,15 +10,14 @@ type LoxFunction struct {
 	Declaration grammar.FunctionDeclarationStatement
 }
 
-func (function *LoxFunction) Call(interpreter Interpreter, arguments []any) any {
+func (function *LoxFunction) Call(interpreter Interpreter, arguments []any) (any, any) {
 	env := Environment{Values: interpreter.globalEnv.Values}
 
 	for i := 0; i < len(function.Declaration.Params); i++ {
 		env.defineEnvValue(function.Declaration.Params[i], arguments[i])
 	}
 
-	interpreter.executeBlock(function.Declaration.Body.Statements, env)
-	return nil
+	return interpreter.executeBlock(function.Declaration.Body.Statements, env)
 }
 
 func (function *LoxFunction) GetAirity() int {
