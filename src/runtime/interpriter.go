@@ -240,10 +240,18 @@ func (interpreter *Interpreter) execute(stmt grammar.Statement) (any, grammar.Lo
 		return nil, interpreter.conditionalStmt(stmtType)
 	case grammar.WhileLoopStatement:
 		return nil, interpreter.whileStmt(stmtType)
+	case grammar.FunctionDeclarationStatement:
+		return interpreter.functionDeclarationStmt(stmtType)
 	case grammar.ReturnStatement:
 		return interpreter.returnStmt(stmtType)
 	}
 
+	return nil, nil
+}
+
+func (interpreter *Interpreter) functionDeclarationStmt(stmt grammar.FunctionDeclarationStatement) (any, grammar.LoxError) {
+	function := LoxFunction{Declaration: stmt}
+	interpreter.Env.defineEnvValue(stmt.Name, function)
 	return nil, nil
 }
 

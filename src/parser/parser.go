@@ -111,7 +111,7 @@ func (parser *Parser) conditionalStatement() (grammar.Statement, grammar.LoxErro
 	var elseBranch grammar.Statement
 	var err grammar.LoxError
 
-	err = parser.expect(grammar.RIGHT_PAREN, "Expect '(' before condition inside 'if' statement")
+	err = parser.expect(grammar.LEFT_PAREN, "Expect '(' before condition inside 'if' statement")
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (parser *Parser) conditionalStatement() (grammar.Statement, grammar.LoxErro
 		return nil, err
 	}
 
-	err = parser.expect(grammar.LEFT_PAREN, "Expect ')' after condition inside 'if' statement")
+	err = parser.expect(grammar.RIGHT_PAREN, "Expect ')' after condition inside 'if' statement")
 	if err != nil {
 		return nil, err
 	}
