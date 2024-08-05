@@ -3,7 +3,7 @@ package parser
 import (
 	"fmt"
 
-	"github.com/DrEmbryo/lox/grammar"
+	"github.com/DrEmbryo/lox/src/grammar"
 )
 
 type ParserError struct {
