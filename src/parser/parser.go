@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/DrEmbryo/lox/src/grammar"
@@ -295,10 +296,65 @@ func (parser *Parser) logicAnd() (grammar.Expression, grammar.LoxError) {
 }
 
 func (parser *Parser) declaration() (grammar.Statement, grammar.LoxError) {
-	if parser.matchToken(grammar.VAR) {
+	switch {
+	case parser.matchToken(grammar.FUNC):
+		return parser.functionDeclaration("function")
+	case parser.matchToken(grammar.VAR):
 		return parser.variableDeclaration()
+	default:
+		return parser.statement()
 	}
-	return parser.statement()
+}
+
+func (parser *Parser) functionDeclaration(kind string) (grammar.Statement, grammar.LoxError) {
+	err := parser.expect(grammar.IDENTIFIER, fmt.Sprintf("Expect %v name.", kind))
+	if err != nil {
+		return nil, err
+	}
+
+	name := parser.lookbehind()
+	parameters := make([]grammar.Token, 0)
+
+	err = parser.expect(grammar.LEFT_PAREN, fmt.Sprintf("Expect '(' after %v name.", kind))
+	if err != nil {
+		return nil, err
+	}
+
+	if !parser.compareTypes(grammar.RIGHT_PAREN) {
+		for ok := true; ok; ok = parser.matchToken(grammar.COMMA) {
+			if len(parameters) >= 255 {
+				return nil, runtime.RuntimeError{Token: parser.lookahead(), Message: "Can't have more than 255 arguments."}
+			}
+			err = parser.expect(grammar.IDENTIFIER, "Expect parameter name.")
+			if err != nil {
+				return nil, err
+			}
+
+			parameters = append(parameters, parser.lookbehind())
+		}
+	}
+
+	err = parser.expect(grammar.RIGHT_PAREN, "Expect ')' after parameters.")
+	if err != nil {
+		return nil, err
+	}
+
+	err = parser.expect(grammar.LEFT_BRACE, fmt.Sprintf("Expect '{' before %v body.", kind))
+	if err != nil {
+		return nil, err
+	}
+
+	blockStmt, err := parser.blockStatement()
+	if err != nil {
+		return nil, err
+	}
+
+	body, ok := blockStmt.(grammar.BlockScopeStatement)
+	if !ok {
+		return nil, ParserError{Message: fmt.Sprintf("Unidentified parser type cast of block statement %T", body)}
+	}
+	return grammar.FunctionDeclarationStatement{Name: name, Params: parameters, Body: body}, err
+
 }
 
 func (parser *Parser) variableDeclaration() (grammar.Statement, grammar.LoxError) {
