@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/DrEmbryo/lox/src/grammar"
+	"github.com/DrEmbryo/lox/grammar"
 )
 
 type Interpreter struct {

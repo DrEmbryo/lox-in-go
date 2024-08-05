@@ -3,7 +3,7 @@ package runtime
 import (
 	"fmt"
 
-	"github.com/DrEmbryo/lox/src/grammar"
+	"github.com/DrEmbryo/lox/grammar"
 )
 
 type RuntimeError struct {

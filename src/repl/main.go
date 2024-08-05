@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/DrEmbryo/lox/src/grammar"
-	"github.com/DrEmbryo/lox/src/lexer"
-	"github.com/DrEmbryo/lox/src/parser"
-	"github.com/DrEmbryo/lox/src/runtime"
-	"github.com/DrEmbryo/lox/src/utils"
+	"github.com/DrEmbryo/lox/grammar"
+	"github.com/DrEmbryo/lox/lexer"
+	"github.com/DrEmbryo/lox/parser"
+	"github.com/DrEmbryo/lox/runtime"
+	"github.com/DrEmbryo/lox/utils"
 )
 
 func main() {

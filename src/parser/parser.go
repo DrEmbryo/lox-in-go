@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/DrEmbryo/lox/src/grammar"
-	"github.com/DrEmbryo/lox/src/runtime"
+	"github.com/DrEmbryo/lox/grammar"
+	"github.com/DrEmbryo/lox/runtime"
 )
 
 type Parser struct {
