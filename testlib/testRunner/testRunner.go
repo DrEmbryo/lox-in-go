@@ -2,6 +2,7 @@ package testRunner
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,7 +13,8 @@ import (
 )
 
 type LoxTestRunnerConfig struct {
-	RootDir string
+	RootDir         string
+	UpdateSnapshots bool
 }
 
 type LoxTestRunner struct {
@@ -68,7 +70,15 @@ func (runner *LoxTestRunner) checkSnapshot(path string, postfix string, payload 
 	if err != nil {
 		os.WriteFile(snapshotPath, []byte(payload), os.ModeAppend)
 	} else {
-		fmt.Println(strings.Compare(string(snapshot), payload))
+		if runner.Config.UpdateSnapshots {
+			os.WriteFile(snapshotPath, []byte(payload), fs.FileMode(os.O_TRUNC))
+			fmt.Printf("Update snap at %s\n", snapshotPath)
+			return
+		}
+		snapshotMatch := strings.Compare(string(snapshot), payload)
+		if snapshotMatch != 0 {
+			fmt.Printf("Failed snap at %s;\n expected %v;\n got %v;\n", snapshotPath, string(snapshot), payload)
+		}
 	}
 }
 
