@@ -41,12 +41,10 @@ func (interpreter *Interpreter) unaryExpr(expr grammar.UnaryExpression) (any, gr
 
 func (interpreter *Interpreter) binaryExpr(expr grammar.BinaryExpression) (any, grammar.LoxError) {
 	left, err := interpreter.evaluate(expr.Left)
-	fmt.Printf("left: %v \n", left)
 	if err != nil {
 		return nil, err
 	}
 	right, err := interpreter.evaluate(expr.Right)
-	fmt.Printf("right: %v \n", right)
 	if err != nil {
 		return nil, err
 	}

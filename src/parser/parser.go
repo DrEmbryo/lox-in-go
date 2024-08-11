@@ -35,7 +35,7 @@ func (parser *Parser) compareTypes(tokenType int) bool {
 
 func (parser *Parser) expect(tokenType int, message string) grammar.LoxError {
 	if parser.compareTypes(tokenType) {
-		parser.current++
+		parser.consume()
 		return nil
 	}
 	return ParserError{Token: parser.lookahead(), Message: message, Position: parser.current}
@@ -44,7 +44,7 @@ func (parser *Parser) expect(tokenType int, message string) grammar.LoxError {
 func (parser *Parser) matchToken(tokenTypes ...int) bool {
 	for _, tokenType := range tokenTypes {
 		if parser.compareTypes(tokenType) {
-			parser.current++
+			parser.consume()
 			return true
 		}
 	}
@@ -401,24 +401,34 @@ func (parser *Parser) variableDeclaration() (grammar.Statement, grammar.LoxError
 
 func (parser *Parser) equality() (grammar.Expression, grammar.LoxError) {
 	leftExpr, err := parser.comparison()
+	if err != nil {
+		return nil, err
+	}
 
 	for parser.matchToken(grammar.BANG, grammar.EQUAL_EQUAL) {
 		operator := parser.lookbehind()
 		rightExpr, err := parser.comparison()
+		if err != nil {
+			return nil, err
+		}
 		leftExpr = grammar.BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
-		return leftExpr, err
 	}
 	return leftExpr, err
 }
 
 func (parser *Parser) comparison() (grammar.Expression, grammar.LoxError) {
 	leftExpr, err := parser.term()
+	if err != nil {
+		return nil, err
+	}
 
 	for parser.matchToken(grammar.GREATER, grammar.GREATER_EQUAL, grammar.LESS, grammar.LESS_EQUAL) {
 		operator := parser.lookbehind()
 		rightExpr, err := parser.term()
+		if err != nil {
+			return nil, err
+		}
 		leftExpr = grammar.BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
-		return leftExpr, err
 	}
 
 	return leftExpr, err
@@ -426,12 +436,17 @@ func (parser *Parser) comparison() (grammar.Expression, grammar.LoxError) {
 
 func (parser *Parser) term() (grammar.Expression, grammar.LoxError) {
 	leftExpr, err := parser.factor()
+	if err != nil {
+		return nil, err
+	}
 
 	for parser.matchToken(grammar.MINUS, grammar.PLUS) {
 		operator := parser.lookbehind()
 		rightExpr, err := parser.factor()
+		if err != nil {
+			return nil, err
+		}
 		leftExpr = grammar.BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
-		return leftExpr, err
 	}
 
 	return leftExpr, err
@@ -439,12 +454,17 @@ func (parser *Parser) term() (grammar.Expression, grammar.LoxError) {
 
 func (parser *Parser) factor() (grammar.Expression, grammar.LoxError) {
 	leftExpr, err := parser.unary()
+	if err != nil {
+		return nil, err
+	}
 
 	for parser.matchToken(grammar.SLASH, grammar.STAR) {
 		operator := parser.lookbehind()
 		rightExpr, err := parser.unary()
+		if err != nil {
+			return nil, err
+		}
 		leftExpr = grammar.BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
-		return leftExpr, err
 	}
 
 	return leftExpr, err
