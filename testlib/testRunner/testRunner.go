@@ -10,6 +10,7 @@ import (
 	"github.com/DrEmbryo/lox/src/grammar"
 	"github.com/DrEmbryo/lox/src/lexer"
 	"github.com/DrEmbryo/lox/src/parser"
+	"github.com/DrEmbryo/lox/src/runtime"
 )
 
 type LoxTestRunnerConfig struct {
@@ -59,8 +60,8 @@ func (runner *LoxTestRunner) runTest(path string) {
 	ast := runner.parse(loxTokens)
 	runner.checkSnapshot(path, ".ast.snap", fmt.Sprintf("%v", ast))
 
-	// add env dump for the eval stage
-	// hooks can be usefull
+	env := runner.interpret(ast)
+	runner.checkSnapshot(path, ".env.snap", fmt.Sprintf("%v", env))
 
 }
 
@@ -100,4 +101,10 @@ func (runner *LoxTestRunner) parse(loxTokens []grammar.Token) []grammar.Statemen
 		grammar.LoxError.Print(err)
 	}
 	return stmts
+}
+func (runner *LoxTestRunner) interpret(stmts []grammar.Statement) runtime.Environment {
+	env := runtime.Environment{Values: make(map[string]any), Parent: nil}
+	interpreter := runtime.Interpreter{Env: env}
+	interpreter.Interpret(stmts)
+	return env
 }
