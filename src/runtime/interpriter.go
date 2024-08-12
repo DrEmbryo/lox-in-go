@@ -144,6 +144,8 @@ func (interpreter *Interpreter) callExpr(expr grammar.CallExpression) (any, gram
 	}
 
 	switch calleeType := callee.(type) {
+	case LoxFunction:
+		function = &calleeType
 	case NativeCall:
 		function = &calleeType
 	default:
@@ -155,7 +157,7 @@ func (interpreter *Interpreter) callExpr(expr grammar.CallExpression) (any, gram
 	}
 
 	arguments := make([]any, 0)
-	for argument := range expr.Arguments {
+	for _, argument := range expr.Arguments {
 		arg, err := interpreter.evaluate(argument)
 		if err != nil {
 			return nil, err
@@ -163,7 +165,7 @@ func (interpreter *Interpreter) callExpr(expr grammar.CallExpression) (any, gram
 		arguments = append(arguments, arg)
 	}
 
-	return function.Call(*interpreter, arguments), nil
+	return function.Call(*interpreter, arguments)
 }
 
 func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.LoxError) {

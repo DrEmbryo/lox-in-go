@@ -1,7 +1,11 @@
 package runtime
 
+import (
+	"github.com/DrEmbryo/lox/src/grammar"
+)
+
 type LoxCallable interface {
-	Call(interpreter Interpreter, arguments []any) any
+	Call(interpreter Interpreter, arguments []any) (any, grammar.LoxError)
 	GetAirity() int
 }
 
@@ -16,8 +20,8 @@ func (native *NativeCall) GetAirity() int {
 	return native.Airity
 }
 
-func (native *NativeCall) Call(interpreter Interpreter, arguments []any) any {
-	return native.NativeCallFunc()
+func (native *NativeCall) Call(interpreter Interpreter, arguments []any) (any, grammar.LoxError) {
+	return native.NativeCallFunc(arguments), nil
 }
 
 func (native *NativeCall) ToString() string {

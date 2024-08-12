@@ -1,1 +1,4 @@
-print 1 + 1 + 1;
+func add(a, b) {
+ print a + b;
+}
+print add(1,2);

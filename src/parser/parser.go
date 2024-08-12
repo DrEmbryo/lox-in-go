@@ -503,7 +503,7 @@ func (parser *Parser) finishCall(expr grammar.Expression) (grammar.Expression, g
 	arguments := make([]grammar.Expression, 0)
 
 	if !parser.compareTypes(grammar.RIGHT_PAREN) {
-		for ok := true; ok; ok = !parser.matchToken(grammar.COMMA) {
+		for ok := true; ok; ok = parser.matchToken(grammar.COMMA) {
 			if len(arguments) >= 255 {
 				return nil, runtime.RuntimeError{Token: parser.lookahead(), Message: "Can't have more than 255 arguments."}
 			}
@@ -516,7 +516,6 @@ func (parser *Parser) finishCall(expr grammar.Expression) (grammar.Expression, g
 			arguments = append(arguments, expr)
 		}
 	}
-
 	return grammar.CallExpression{Callee: expr, Paren: parser.lookahead(), Arguments: arguments}, parser.expect(grammar.RIGHT_PAREN, "Expect ')' after argument.")
 }
 

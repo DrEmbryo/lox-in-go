@@ -10,7 +10,7 @@ type LoxFunction struct {
 	Declaration grammar.FunctionDeclarationStatement
 }
 
-func (function *LoxFunction) Call(interpreter Interpreter, arguments []any) (any, any) {
+func (function *LoxFunction) Call(interpreter Interpreter, arguments []any) (any, grammar.LoxError) {
 	env := Environment{Values: interpreter.globalEnv.Values}
 
 	for i := 0; i < len(function.Declaration.Params); i++ {
