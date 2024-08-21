@@ -8,10 +8,11 @@ import (
 
 type LoxFunction struct {
 	Declaration grammar.FunctionDeclarationStatement
+	Closure     Environment
 }
 
 func (function *LoxFunction) Call(interpreter Interpreter, arguments []any) (any, grammar.LoxError) {
-	env := Environment{Values: interpreter.globalEnv.Values}
+	env := function.Closure
 
 	for i := 0; i < len(function.Declaration.Params); i++ {
 		env.defineEnvValue(function.Declaration.Params[i], arguments[i])

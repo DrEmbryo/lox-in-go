@@ -250,7 +250,7 @@ func (interpreter *Interpreter) execute(stmt grammar.Statement) (any, grammar.Lo
 }
 
 func (interpreter *Interpreter) functionDeclarationStmt(stmt grammar.FunctionDeclarationStatement) (any, grammar.LoxError) {
-	function := LoxFunction{Declaration: stmt}
+	function := LoxFunction{Declaration: stmt, Closure: interpreter.Env}
 	interpreter.Env.defineEnvValue(stmt.Name, function)
 	return nil, nil
 }
