@@ -43,6 +43,10 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 		expr := printer.printNode(offset+1, stmtType.Condition)
 		body := printer.printNode(offset+1, stmtType.Body)
 		return makeTemplateStr(offset, nodeType, expr, body)
+	case grammar.ReturnStatement:
+		expr := printer.printNode(offset+1, stmtType.Expression)
+		keyword := printer.printNode(offset+1, stmtType.Keyword)
+		return makeTemplateStr(offset, nodeType, expr, keyword)
 	case grammar.ConditionalStatement:
 		condition := printer.printNode(offset+1, stmtType.Condition)
 		thenBranch := printer.printNode(offset+1, stmtType.ThenBranch)
@@ -75,6 +79,11 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 	case grammar.FunctionDeclarationStatement:
 		token := printer.printNode(offset+1, stmtType.Name)
 		return makeTemplateStr(offset, nodeType, token)
+	case grammar.LogicExpression:
+		leftExpr := printer.printNode(offset+1, stmtType.Left)
+		operator := printer.printNode(offset+1, stmtType.Operator)
+		rightExpr := printer.printNode(offset+1, stmtType.Right)
+		return makeTemplateStr(offset, nodeType, leftExpr, operator, rightExpr)
 	case grammar.GroupingExpression:
 		expr := printer.printNode(offset+1, stmtType.Expression)
 		return makeTemplateStr(offset, nodeType, expr)
@@ -82,6 +91,11 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 		token := printer.printNode(offset+1, stmtType.Name)
 		expr := printer.printNode(offset+1, stmtType.Value)
 		return makeTemplateStr(offset, nodeType, token, expr)
+	case grammar.CallExpression:
+		callee := printer.printNode(offset+1, stmtType.Callee)
+		expr := printer.printNode(offset+1, stmtType.Paren)
+		args := printer.printNode(offset+1, stmtType.Arguments)
+		return makeTemplateStr(offset, nodeType, callee, expr, args)
 	default:
 		return nodeType
 	}
