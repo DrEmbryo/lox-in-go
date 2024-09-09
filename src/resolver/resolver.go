@@ -1,3 +1,4 @@
+// 183
 package resolver
 
 import (
@@ -143,6 +144,16 @@ func (resolver *Resolver) resolveExpr(expr grammar.Expression) grammar.LoxError 
 		return resolver.resolveVarExpr(exprType)
 	case grammar.AssignmentExpression:
 		return resolver.resolveAssignmentExpr(exprType)
+	case grammar.BinaryExpression:
+		return resolver.resolveBinaryExpr(exprType)
+	case grammar.CallExpression:
+		return resolver.resolveCallExpr(exprType)
+	case grammar.GroupingExpression:
+		return resolver.resolveGroupExpr(exprType)
+	case grammar.LiteralExpression:
+		return resolver.resolveLiteralExpr()
+	case grammar.UnaryExpression:
+		return resolver.resolveUnaryExpr(exprType)
 	default:
 		return nil
 	}
@@ -178,4 +189,36 @@ func (resolver *Resolver) resolveAssignmentExpr(expr grammar.AssignmentExpressio
 	err := resolver.Resolve(expr.Value)
 	resolver.resolveLocal(expr, expr.Name)
 	return err
+}
+
+func (resolver *Resolver) resolveBinaryExpr(expr grammar.BinaryExpression) grammar.LoxError {
+	err := resolver.Resolve(expr.Left)
+	if err != nil {
+		return err
+	}
+	err = resolver.Resolve(expr.Right)
+	return err
+}
+
+func (resolver *Resolver) resolveCallExpr(expr grammar.CallExpression) grammar.LoxError {
+	err := resolver.Resolve(expr.Callee)
+	for _, argument := range expr.Arguments {
+		err := resolver.Resolve(argument)
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+func (resolver *Resolver) resolveGroupExpr(expr grammar.GroupingExpression) grammar.LoxError {
+	return resolver.Resolve(expr.Expression)
+}
+
+func (resolver *Resolver) resolveLiteralExpr() grammar.LoxError {
+	return nil
+}
+
+func (resolver *Resolver) resolveUnaryExpr(expr grammar.UnaryExpression) grammar.LoxError {
+	return resolver.Resolve(expr.Right)
 }
