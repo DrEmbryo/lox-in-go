@@ -370,3 +370,7 @@ func checkNumericOperands(operator grammar.Token, left any, right any) grammar.L
 	}
 	return RuntimeError{Token: operator, Message: "Operands must be numbers."}
 }
+
+func (interpreter *Interpreter) Resolve(expr grammar.Expression, i int) {
+
+}
