@@ -39,13 +39,15 @@ func (resolver *Resolver) resolveStmt(stmt grammar.Statement) grammar.LoxError {
 	switch stmtType := stmt.(type) {
 	case grammar.VariableDeclarationStatement:
 		return resolver.resolveVarStmt(stmtType)
+	case grammar.FunctionDeclarationStatement:
+		return resolver.resolveFunctionStmt(stmtType)
 	default:
 		return nil
 	}
 }
 
 func (resolver *Resolver) resolveVarStmt(stmt grammar.VariableDeclarationStatement) grammar.LoxError {
-	err := resolver.declare(stmt.Name)
+	resolver.declare(stmt.Name)
 	if stmt.Initializer != nil {
 		err := resolver.resolveExpr(stmt.Initializer)
 		if err != nil {
@@ -53,25 +55,23 @@ func (resolver *Resolver) resolveVarStmt(stmt grammar.VariableDeclarationStateme
 		}
 	}
 	resolver.define(stmt.Name)
-	return err
+	return nil
 }
 
-func (resolver *Resolver) declare(name grammar.Token) grammar.LoxError {
+func (resolver *Resolver) declare(name grammar.Token) {
 	scope, err := resolver.scopes.Peek()
 	if err != nil {
-		return ResolverError{Token: name, Message: fmt.Sprint(err)}
+		return
 	}
 	scope[name.Lexeme.(string)] = false
-	return nil
 }
 
-func (resolver *Resolver) define(name grammar.Token) grammar.LoxError {
+func (resolver *Resolver) define(name grammar.Token) {
 	scope, err := resolver.scopes.Peek()
 	if err != nil {
-		return ResolverError{Token: name, Message: fmt.Sprint(err)}
+		return
 	}
 	scope[name.Lexeme.(string)] = true
-	return nil
 }
 
 func (resolver *Resolver) resolveExpr(expr grammar.Expression) grammar.LoxError {
@@ -111,8 +111,25 @@ func (resolver *Resolver) resolveLocal(expr grammar.Expression, name grammar.Tok
 	return nil
 }
 
-func (reolver *Resolver) resolveAssignmentExpr(expr grammar.AssignmentExpression) grammar.LoxError {
-	err := reolver.resolveExpr(expr.Value)
-	reolver.resolveLocal(expr, expr.Name)
+func (resolver *Resolver) resolveAssignmentExpr(expr grammar.AssignmentExpression) grammar.LoxError {
+	err := resolver.resolveExpr(expr.Value)
+	resolver.resolveLocal(expr, expr.Name)
 	return err
+}
+
+func (resolver *Resolver) resolveFunctionStmt(stmt grammar.FunctionDeclarationStatement) grammar.LoxError {
+	resolver.declare(stmt.Name)
+	resolver.define(stmt.Name)
+	resolver.resolveFunction(stmt)
+	return nil
+}
+
+func (resolver *Resolver) resolveFunction(function grammar.FunctionDeclarationStatement) grammar.LoxError {
+	resolver.beginScope()
+	for _, param := range function.Params {
+		resolver.declare(param)
+	}
+	resolver.resolveStmt(function.Body)
+	resolver.endScope()
+	return nil
 }
