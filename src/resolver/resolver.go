@@ -59,6 +59,12 @@ func (resolver *Resolver) resolveStmt(stmt grammar.Statement) grammar.LoxError {
 		return resolver.resolveExpressionStmt(stmtType)
 	case grammar.ConditionalStatement:
 		return resolver.resolveConditionalStmt(stmtType)
+	case grammar.PrintStatement:
+		return resolver.resolvePrintStmt(stmtType)
+	case grammar.ReturnStatement:
+		return resolver.resolveReturnStmt(stmtType)
+	case grammar.WhileLoopStatement:
+		return resolver.resolveWhileStmt(stmtType)
 	default:
 		return nil
 	}
@@ -110,6 +116,25 @@ func (resolver *Resolver) resolveConditionalStmt(stmt grammar.ConditionalStateme
 		err = resolver.Resolve(stmt.ElseBranch)
 	}
 	return err
+}
+
+func (resolver *Resolver) resolvePrintStmt(stmt grammar.PrintStatement) grammar.LoxError {
+	return resolver.Resolve(stmt.Value)
+}
+
+func (resolver *Resolver) resolveReturnStmt(stmt grammar.ReturnStatement) grammar.LoxError {
+	if stmt.Expression != nil {
+		return resolver.Resolve(stmt.Expression)
+	}
+	return nil
+}
+
+func (resolver *Resolver) resolveWhileStmt(stmt grammar.WhileLoopStatement) grammar.LoxError {
+	err := resolver.Resolve(stmt.Condition)
+	if err != nil {
+		return err
+	}
+	return resolver.Resolve(stmt.Body)
 }
 
 func (resolver *Resolver) resolveExpr(expr grammar.Expression) grammar.LoxError {
