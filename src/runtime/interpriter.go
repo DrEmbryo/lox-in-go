@@ -340,7 +340,12 @@ func (interpreter *Interpreter) assignmentExpr(expr grammar.AssignmentExpression
 	if err != nil {
 		return nil, err
 	}
-	interpreter.Env.assignEnvValue(expr.Name, value)
+	distance, ok := interpreter.localEnv[expr]
+	if !ok {
+		interpreter.Env.assignEnvValueAt(distance, expr.Name, value)
+	} else {
+		interpreter.globalEnv.assignEnvValue(expr.Name, value)
+	}
 	return value, nil
 }
 

@@ -43,6 +43,12 @@ func (env *Environment) assignEnvValue(name grammar.Token, value any) grammar.Lo
 func (env *Environment) getEnvValueAt(distance int, name grammar.Token) (any, grammar.LoxError) {
 	return env.getAncestor(distance).getEnvValue(name)
 }
+
+func (env *Environment) assignEnvValueAt(distance int, name grammar.Token, value any) {
+	varName := fmt.Sprintf("%s", name.Lexeme)
+	env.getAncestor(distance).Values[varName] = value
+}
+
 func (env *Environment) getAncestor(distance int) *Environment {
 	environment := env
 	for i := 0; i < distance; i++ {

@@ -10,20 +10,20 @@ import (
 )
 
 type Resolver struct {
-	interpreter runtime.Interpreter
-	scopes      utils.Stack[map[string]bool]
+	Interpreter runtime.Interpreter
+	Scopes      utils.Stack[map[string]bool]
 }
 
 func (resolver *Resolver) beginScope() {
-	resolver.scopes.Push(make(map[string]bool))
+	resolver.Scopes.Push(make(map[string]bool))
 }
 
 func (resolver *Resolver) endScope() {
-	resolver.scopes.Pop()
+	resolver.Scopes.Pop()
 }
 
 func (resolver *Resolver) declare(name grammar.Token) {
-	scope, err := resolver.scopes.Peek()
+	scope, err := resolver.Scopes.Peek()
 	if err != nil {
 		return
 	}
@@ -31,7 +31,7 @@ func (resolver *Resolver) declare(name grammar.Token) {
 }
 
 func (resolver *Resolver) define(name grammar.Token) {
-	scope, err := resolver.scopes.Peek()
+	scope, err := resolver.Scopes.Peek()
 	if err != nil {
 		return
 	}
@@ -160,11 +160,11 @@ func (resolver *Resolver) resolveExpr(expr grammar.Expression) grammar.LoxError 
 }
 
 func (resolver *Resolver) resolveVarExpr(expr grammar.VariableDeclaration) grammar.LoxError {
-	scope, err := resolver.scopes.Peek()
+	scope, err := resolver.Scopes.Peek()
 	if err != nil {
 		return ResolverError{Token: expr.Name, Message: fmt.Sprint(err)}
 	}
-	if val, ok := scope[expr.Name.Lexeme.(string)]; !resolver.scopes.IsEmpty() && ok && val {
+	if val, ok := scope[expr.Name.Lexeme.(string)]; !resolver.Scopes.IsEmpty() && ok && val {
 		return ResolverError{Token: expr.Name, Message: "Can't read local variable in its own initializer."}
 	}
 	resolver.resolveLocal(expr, expr.Name)
@@ -172,13 +172,13 @@ func (resolver *Resolver) resolveVarExpr(expr grammar.VariableDeclaration) gramm
 }
 
 func (resolver *Resolver) resolveLocal(expr grammar.Expression, name grammar.Token) grammar.LoxError {
-	for i := resolver.scopes.Len() - 1; i >= 0; i-- {
-		scope, err := resolver.scopes.Get(i)
+	for i := resolver.Scopes.Len() - 1; i >= 0; i-- {
+		scope, err := resolver.Scopes.Get(i)
 		if err != nil {
 			return ResolverError{Token: name, Message: fmt.Sprint(err)}
 		}
 		if _, ok := scope[name.Lexeme.(string)]; ok {
-			resolver.interpreter.Resolve(expr, resolver.scopes.Len()-1-i) //implement later
+			resolver.Interpreter.Resolve(expr, resolver.Scopes.Len()-1-i)
 			return nil
 		}
 	}
