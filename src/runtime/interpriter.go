@@ -10,6 +10,7 @@ import (
 type Interpreter struct {
 	Env       Environment
 	globalEnv *Environment
+	localEnv  map[any]int
 }
 
 func (interpreter *Interpreter) literalExpr(expr grammar.LiteralExpression) (any, grammar.LoxError) {
@@ -323,7 +324,15 @@ func (interpreter *Interpreter) varStmt(stmt grammar.VariableDeclarationStatemen
 }
 
 func (interpreter *Interpreter) varExpr(expr grammar.VariableDeclaration) (any, grammar.LoxError) {
-	return interpreter.Env.getEnvValue(expr.Name)
+	return interpreter.lookUpVariable(expr.Name, expr)
+}
+
+func (interpreter *Interpreter) lookUpVariable(name grammar.Token, expr grammar.Expression) (any, grammar.LoxError) {
+	distance, ok := interpreter.localEnv[expr]
+	if !ok {
+		return interpreter.Env.getEnvValueAt(distance, name)
+	}
+	return interpreter.globalEnv.getEnvValue(name)
 }
 
 func (interpreter *Interpreter) assignmentExpr(expr grammar.AssignmentExpression) (any, grammar.LoxError) {
@@ -371,6 +380,6 @@ func checkNumericOperands(operator grammar.Token, left any, right any) grammar.L
 	return RuntimeError{Token: operator, Message: "Operands must be numbers."}
 }
 
-func (interpreter *Interpreter) Resolve(expr grammar.Expression, i int) {
-
+func (interpreter *Interpreter) Resolve(expr grammar.Expression, depth int) {
+	interpreter.localEnv[expr] = depth
 }

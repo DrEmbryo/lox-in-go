@@ -40,3 +40,13 @@ func (env *Environment) assignEnvValue(name grammar.Token, value any) grammar.Lo
 	}
 	return RuntimeError{Token: name, Message: fmt.Sprintf("Undefined variable '%s'.", name.Lexeme)}
 }
+func (env *Environment) getEnvValueAt(distance int, name grammar.Token) (any, grammar.LoxError) {
+	return env.getAncestor(distance).getEnvValue(name)
+}
+func (env *Environment) getAncestor(distance int) *Environment {
+	environment := env
+	for i := 0; i < distance; i++ {
+		environment = environment.Parent
+	}
+	return environment
+}
