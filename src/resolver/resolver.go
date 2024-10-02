@@ -1,4 +1,4 @@
-// 183
+// 186
 package resolver
 
 import (
@@ -38,16 +38,15 @@ func (resolver *Resolver) define(name grammar.Token) {
 	scope[name.Lexeme.(string)] = true
 }
 
-func (resolver *Resolver) Resolve(entity any) grammar.LoxError {
-	fmt.Printf("%T", entity)
-	switch entytyType := entity.(type) {
-	case grammar.Statement:
-		return resolver.resolveStmt(entytyType)
-	case grammar.Expression:
-		return resolver.resolveExpr(entytyType)
-	default:
-		return nil
+func (resolver *Resolver) Resolve(statements []grammar.Statement) []grammar.LoxError {
+	errs := make([]grammar.LoxError, 0)
+	for _, stmt := range statements {
+		err := resolver.resolveStmt(stmt)
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
+	return errs
 }
 
 func (resolver *Resolver) resolveStmt(stmt grammar.Statement) grammar.LoxError {
@@ -74,7 +73,7 @@ func (resolver *Resolver) resolveStmt(stmt grammar.Statement) grammar.LoxError {
 func (resolver *Resolver) resolveVarStmt(stmt grammar.VariableDeclarationStatement) grammar.LoxError {
 	resolver.declare(stmt.Name)
 	if stmt.Initializer != nil {
-		err := resolver.Resolve(stmt.Initializer)
+		err := resolver.resolveStmt(stmt.Initializer)
 		if err != nil {
 			return err
 		}
@@ -95,47 +94,47 @@ func (resolver *Resolver) resolveFunction(function grammar.FunctionDeclarationSt
 	for _, param := range function.Params {
 		resolver.declare(param)
 	}
-	resolver.Resolve(function.Body)
+	resolver.resolveStmt(function.Body)
 	resolver.endScope()
 	return nil
 }
 
 func (resolver *Resolver) resolveExpressionStmt(expr grammar.ExpressionStatement) grammar.LoxError {
-	return resolver.Resolve(expr)
+	return resolver.resolveExpr(expr)
 }
 
 func (resolver *Resolver) resolveConditionalStmt(stmt grammar.ConditionalStatement) grammar.LoxError {
-	err := resolver.Resolve(stmt.Condition)
+	err := resolver.resolveStmt(stmt.Condition)
 	if err != nil {
 		return err
 	}
-	err = resolver.Resolve(stmt.ThenBranch)
+	err = resolver.resolveStmt(stmt.ThenBranch)
 	if err != nil {
 		return err
 	}
 	if stmt.ElseBranch != nil {
-		err = resolver.Resolve(stmt.ElseBranch)
+		err = resolver.resolveStmt(stmt.ElseBranch)
 	}
 	return err
 }
 
 func (resolver *Resolver) resolvePrintStmt(stmt grammar.PrintStatement) grammar.LoxError {
-	return resolver.Resolve(stmt.Value)
+	return resolver.resolveStmt(stmt.Value)
 }
 
 func (resolver *Resolver) resolveReturnStmt(stmt grammar.ReturnStatement) grammar.LoxError {
 	if stmt.Expression != nil {
-		return resolver.Resolve(stmt.Expression)
+		return resolver.resolveStmt(stmt.Expression)
 	}
 	return nil
 }
 
 func (resolver *Resolver) resolveWhileStmt(stmt grammar.WhileLoopStatement) grammar.LoxError {
-	err := resolver.Resolve(stmt.Condition)
+	err := resolver.resolveStmt(stmt.Condition)
 	if err != nil {
 		return err
 	}
-	return resolver.Resolve(stmt.Body)
+	return resolver.resolveStmt(stmt.Body)
 }
 
 func (resolver *Resolver) resolveExpr(expr grammar.Expression) grammar.LoxError {
@@ -186,24 +185,24 @@ func (resolver *Resolver) resolveLocal(expr grammar.Expression, name grammar.Tok
 }
 
 func (resolver *Resolver) resolveAssignmentExpr(expr grammar.AssignmentExpression) grammar.LoxError {
-	err := resolver.Resolve(expr.Value)
+	err := resolver.resolveExpr(expr.Value)
 	resolver.resolveLocal(expr, expr.Name)
 	return err
 }
 
 func (resolver *Resolver) resolveBinaryExpr(expr grammar.BinaryExpression) grammar.LoxError {
-	err := resolver.Resolve(expr.Left)
+	err := resolver.resolveExpr(expr.Left)
 	if err != nil {
 		return err
 	}
-	err = resolver.Resolve(expr.Right)
+	err = resolver.resolveExpr(expr.Right)
 	return err
 }
 
 func (resolver *Resolver) resolveCallExpr(expr grammar.CallExpression) grammar.LoxError {
-	err := resolver.Resolve(expr.Callee)
+	err := resolver.resolveExpr(expr.Callee)
 	for _, argument := range expr.Arguments {
-		err := resolver.Resolve(argument)
+		err := resolver.resolveExpr(argument)
 		if err != nil {
 			return err
 		}
@@ -212,7 +211,7 @@ func (resolver *Resolver) resolveCallExpr(expr grammar.CallExpression) grammar.L
 }
 
 func (resolver *Resolver) resolveGroupExpr(expr grammar.GroupingExpression) grammar.LoxError {
-	return resolver.Resolve(expr.Expression)
+	return resolver.resolveExpr(expr.Expression)
 }
 
 func (resolver *Resolver) resolveLiteralExpr() grammar.LoxError {
@@ -220,5 +219,5 @@ func (resolver *Resolver) resolveLiteralExpr() grammar.LoxError {
 }
 
 func (resolver *Resolver) resolveUnaryExpr(expr grammar.UnaryExpression) grammar.LoxError {
-	return resolver.Resolve(expr.Right)
+	return resolver.resolveExpr(expr.Right)
 }

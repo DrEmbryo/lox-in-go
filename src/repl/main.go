@@ -74,11 +74,13 @@ func eval(source string, options *flag.FlagSet) {
 	env := runtime.Environment{Values: make(map[string]any), Parent: nil}
 	interpreter := runtime.Interpreter{Env: env}
 	resolver := resolver.Resolver{Interpreter: interpreter, Scopes: utils.Stack[map[string]bool]{}}
-	err = resolver.Resolve(stmts)
-	if err != nil {
-		grammar.LoxError.Print(err)
+	errs := resolver.Resolve(stmts)
+	if len(errs) > 0 {
+		for _, e := range errs {
+			grammar.LoxError.Print(e)
+		}
 	}
-	errs := interpreter.Interpret(stmts)
+	errs = interpreter.Interpret(stmts)
 	if len(errs) > 0 {
 		for _, e := range errs {
 			grammar.LoxError.Print(e)
