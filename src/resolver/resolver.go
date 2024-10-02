@@ -12,22 +12,30 @@ import (
 type Resolver struct {
 	Interpreter runtime.Interpreter
 	Scopes      utils.Stack[map[string]bool]
+	Error       []grammar.LoxError
 }
 
 func (resolver *Resolver) beginScope() {
-	resolver.Scopes.Push(make(map[string]bool))
+	resolver.Scopes.Push(make(map[string]bool, 0))
 }
 
 func (resolver *Resolver) endScope() {
 	resolver.Scopes.Pop()
 }
 
-func (resolver *Resolver) declare(name grammar.Token) {
+func (resolver *Resolver) declare(name grammar.Token) grammar.LoxError {
 	scope, err := resolver.Scopes.Peek()
 	if err != nil {
-		return
+		return nil
 	}
-	scope[name.Lexeme.(string)] = false
+	key := name.Lexeme.(string)
+	_, ok := scope[key]
+	if ok {
+		return ResolverError{Token: name, Message: "Already variable with this name in this scope."}
+	} else {
+		scope[key] = false
+	}
+	return nil
 }
 
 func (resolver *Resolver) define(name grammar.Token) {
@@ -35,22 +43,28 @@ func (resolver *Resolver) define(name grammar.Token) {
 	if err != nil {
 		return
 	}
-	scope[name.Lexeme.(string)] = true
+	key := name.Lexeme.(string)
+	scope[key] = true
 }
 
 func (resolver *Resolver) Resolve(statements []grammar.Statement) []grammar.LoxError {
-	errs := make([]grammar.LoxError, 0)
+	resolver.resolveStmts(statements)
+	return resolver.Error
+}
+
+func (resolver *Resolver) resolveStmts(statements []grammar.Statement) {
 	for _, stmt := range statements {
 		err := resolver.resolveStmt(stmt)
 		if err != nil {
-			errs = append(errs, err)
+			resolver.Error = append(resolver.Error, err)
 		}
 	}
-	return errs
 }
 
 func (resolver *Resolver) resolveStmt(stmt grammar.Statement) grammar.LoxError {
 	switch stmtType := stmt.(type) {
+	case grammar.BlockScopeStatement:
+		return resolver.resolveBlockStmt(stmtType)
 	case grammar.VariableDeclarationStatement:
 		return resolver.resolveVarStmt(stmtType)
 	case grammar.FunctionDeclarationStatement:
@@ -70,8 +84,18 @@ func (resolver *Resolver) resolveStmt(stmt grammar.Statement) grammar.LoxError {
 	}
 }
 
+func (resolver *Resolver) resolveBlockStmt(stmt grammar.BlockScopeStatement) grammar.LoxError {
+	resolver.beginScope()
+	resolver.resolveStmts(stmt.Statements)
+	resolver.endScope()
+	return nil
+}
+
 func (resolver *Resolver) resolveVarStmt(stmt grammar.VariableDeclarationStatement) grammar.LoxError {
-	resolver.declare(stmt.Name)
+	err := resolver.declare(stmt.Name)
+	if err != nil {
+		return err
+	}
 	if stmt.Initializer != nil {
 		err := resolver.resolveStmt(stmt.Initializer)
 		if err != nil {
@@ -92,7 +116,11 @@ func (resolver *Resolver) resolveFunctionStmt(stmt grammar.FunctionDeclarationSt
 func (resolver *Resolver) resolveFunction(function grammar.FunctionDeclarationStatement) grammar.LoxError {
 	resolver.beginScope()
 	for _, param := range function.Params {
-		resolver.declare(param)
+		err := resolver.declare(param)
+		if err != nil {
+			return err
+		}
+		resolver.define(param)
 	}
 	resolver.resolveStmt(function.Body)
 	resolver.endScope()
@@ -104,7 +132,7 @@ func (resolver *Resolver) resolveExpressionStmt(expr grammar.ExpressionStatement
 }
 
 func (resolver *Resolver) resolveConditionalStmt(stmt grammar.ConditionalStatement) grammar.LoxError {
-	err := resolver.resolveStmt(stmt.Condition)
+	err := resolver.resolveExpr(stmt.Condition)
 	if err != nil {
 		return err
 	}
@@ -119,18 +147,18 @@ func (resolver *Resolver) resolveConditionalStmt(stmt grammar.ConditionalStateme
 }
 
 func (resolver *Resolver) resolvePrintStmt(stmt grammar.PrintStatement) grammar.LoxError {
-	return resolver.resolveStmt(stmt.Value)
+	return resolver.resolveExpr(stmt.Value)
 }
 
 func (resolver *Resolver) resolveReturnStmt(stmt grammar.ReturnStatement) grammar.LoxError {
 	if stmt.Expression != nil {
-		return resolver.resolveStmt(stmt.Expression)
+		return resolver.resolveExpr(stmt.Expression)
 	}
 	return nil
 }
 
 func (resolver *Resolver) resolveWhileStmt(stmt grammar.WhileLoopStatement) grammar.LoxError {
-	err := resolver.resolveStmt(stmt.Condition)
+	err := resolver.resolveExpr(stmt.Condition)
 	if err != nil {
 		return err
 	}
@@ -163,7 +191,8 @@ func (resolver *Resolver) resolveVarExpr(expr grammar.VariableDeclaration) gramm
 	if err != nil {
 		return ResolverError{Token: expr.Name, Message: fmt.Sprint(err)}
 	}
-	if val, ok := scope[expr.Name.Lexeme.(string)]; !resolver.Scopes.IsEmpty() && ok && val {
+	key := expr.Name.Lexeme.(string)
+	if val, ok := scope[key]; !resolver.Scopes.IsEmpty() && ok && !val {
 		return ResolverError{Token: expr.Name, Message: "Can't read local variable in its own initializer."}
 	}
 	resolver.resolveLocal(expr, expr.Name)
@@ -176,7 +205,8 @@ func (resolver *Resolver) resolveLocal(expr grammar.Expression, name grammar.Tok
 		if err != nil {
 			return ResolverError{Token: name, Message: fmt.Sprint(err)}
 		}
-		if _, ok := scope[name.Lexeme.(string)]; ok {
+		key := name.Lexeme.(string)
+		if _, ok := scope[key]; ok {
 			resolver.Interpreter.Resolve(expr, resolver.Scopes.Len()-1-i)
 			return nil
 		}
