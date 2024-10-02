@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/DrEmbryo/lox/src/grammar"
+	"github.com/DrEmbryo/lox/src/runtime"
 )
 
 type Parser struct {
@@ -34,7 +35,7 @@ func (parser *Parser) compareTypes(tokenType int) bool {
 
 func (parser *Parser) expect(tokenType int, message string) grammar.LoxError {
 	if parser.compareTypes(tokenType) {
-		parser.current++
+		parser.consume()
 		return nil
 	}
 	return ParserError{Token: parser.lookahead(), Message: message, Position: parser.current}
@@ -43,7 +44,7 @@ func (parser *Parser) expect(tokenType int, message string) grammar.LoxError {
 func (parser *Parser) matchToken(tokenTypes ...int) bool {
 	for _, tokenType := range tokenTypes {
 		if parser.compareTypes(tokenType) {
-			parser.current++
+			parser.consume()
 			return true
 		}
 	}
@@ -73,6 +74,8 @@ func (parser *Parser) statement() (grammar.Statement, grammar.LoxError) {
 	switch {
 	case parser.matchToken(grammar.PRINT):
 		return parser.PrintStatement()
+	case parser.matchToken(grammar.RETURN):
+		return parser.returnStatement()
 	case parser.matchToken(grammar.LEFT_BRACE):
 		return parser.blockStatement()
 	case parser.matchToken(grammar.WHILE):
@@ -86,13 +89,29 @@ func (parser *Parser) statement() (grammar.Statement, grammar.LoxError) {
 	}
 }
 
+func (parser *Parser) returnStatement() (grammar.Statement, grammar.LoxError) {
+	var value any
+	var err grammar.LoxError
+
+	keyword := parser.lookbehind()
+
+	if !parser.compareTypes(grammar.SEMICOLON) {
+		value, err = parser.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return grammar.ReturnStatement{Keyword: keyword, Expression: value}, parser.expect(grammar.SEMICOLON, "Expect ';' after return value.")
+}
+
 func (parser *Parser) conditionalStatement() (grammar.Statement, grammar.LoxError) {
 	var condition grammar.Expression
 	var thenBranch grammar.Statement
 	var elseBranch grammar.Statement
 	var err grammar.LoxError
 
-	err = parser.expect(grammar.RIGHT_PAREN, "Expect '(' before condition inside 'if' statement")
+	err = parser.expect(grammar.LEFT_PAREN, "Expect '(' before condition inside 'if' statement")
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +120,7 @@ func (parser *Parser) conditionalStatement() (grammar.Statement, grammar.LoxErro
 		return nil, err
 	}
 
-	err = parser.expect(grammar.LEFT_PAREN, "Expect ')' after condition inside 'if' statement")
+	err = parser.expect(grammar.RIGHT_PAREN, "Expect ')' after condition inside 'if' statement")
 	if err != nil {
 		return nil, err
 	}
@@ -244,11 +263,8 @@ func (parser *Parser) assignment() (grammar.Expression, grammar.LoxError) {
 	if err != nil {
 		return nil, err
 	}
-	//sould be assignmentExpression instead get expressionStatement
-	fmt.Printf("%T \n", expr)
 
 	if parser.matchToken(grammar.EQUAL) {
-		fmt.Println("assignment")
 		equal := parser.lookbehind()
 		value, err := parser.assignment()
 		if err != nil {
@@ -298,10 +314,65 @@ func (parser *Parser) logicAnd() (grammar.Expression, grammar.LoxError) {
 }
 
 func (parser *Parser) declaration() (grammar.Statement, grammar.LoxError) {
-	if parser.matchToken(grammar.VAR) {
+	switch {
+	case parser.matchToken(grammar.FUNC):
+		return parser.functionDeclaration("function")
+	case parser.matchToken(grammar.VAR):
 		return parser.variableDeclaration()
+	default:
+		return parser.statement()
 	}
-	return parser.statement()
+}
+
+func (parser *Parser) functionDeclaration(kind string) (grammar.Statement, grammar.LoxError) {
+	err := parser.expect(grammar.IDENTIFIER, fmt.Sprintf("Expect %v name.", kind))
+	if err != nil {
+		return nil, err
+	}
+
+	name := parser.lookbehind()
+	parameters := make([]grammar.Token, 0)
+
+	err = parser.expect(grammar.LEFT_PAREN, fmt.Sprintf("Expect '(' after %v name.", kind))
+	if err != nil {
+		return nil, err
+	}
+
+	if !parser.compareTypes(grammar.RIGHT_PAREN) {
+		for ok := true; ok; ok = parser.matchToken(grammar.COMMA) {
+			if len(parameters) >= 255 {
+				return nil, runtime.RuntimeError{Token: parser.lookahead(), Message: "Can't have more than 255 arguments."}
+			}
+			err = parser.expect(grammar.IDENTIFIER, "Expect parameter name.")
+			if err != nil {
+				return nil, err
+			}
+
+			parameters = append(parameters, parser.lookbehind())
+		}
+	}
+
+	err = parser.expect(grammar.RIGHT_PAREN, "Expect ')' after parameters.")
+	if err != nil {
+		return nil, err
+	}
+
+	err = parser.expect(grammar.LEFT_BRACE, fmt.Sprintf("Expect '{' before %v body.", kind))
+	if err != nil {
+		return nil, err
+	}
+
+	blockStmt, err := parser.blockStatement()
+	if err != nil {
+		return nil, err
+	}
+
+	body, ok := blockStmt.(grammar.BlockScopeStatement)
+	if !ok {
+		return nil, ParserError{Message: fmt.Sprintf("Unidentified parser type cast of block statement %T", body)}
+	}
+	return grammar.FunctionDeclarationStatement{Name: name, Params: parameters, Body: body}, err
+
 }
 
 func (parser *Parser) variableDeclaration() (grammar.Statement, grammar.LoxError) {
@@ -330,24 +401,34 @@ func (parser *Parser) variableDeclaration() (grammar.Statement, grammar.LoxError
 
 func (parser *Parser) equality() (grammar.Expression, grammar.LoxError) {
 	leftExpr, err := parser.comparison()
+	if err != nil {
+		return nil, err
+	}
 
 	for parser.matchToken(grammar.BANG, grammar.EQUAL_EQUAL) {
 		operator := parser.lookbehind()
 		rightExpr, err := parser.comparison()
+		if err != nil {
+			return nil, err
+		}
 		leftExpr = grammar.BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
-		return leftExpr, err
 	}
 	return leftExpr, err
 }
 
 func (parser *Parser) comparison() (grammar.Expression, grammar.LoxError) {
 	leftExpr, err := parser.term()
+	if err != nil {
+		return nil, err
+	}
 
 	for parser.matchToken(grammar.GREATER, grammar.GREATER_EQUAL, grammar.LESS, grammar.LESS_EQUAL) {
 		operator := parser.lookbehind()
 		rightExpr, err := parser.term()
+		if err != nil {
+			return nil, err
+		}
 		leftExpr = grammar.BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
-		return leftExpr, err
 	}
 
 	return leftExpr, err
@@ -355,12 +436,17 @@ func (parser *Parser) comparison() (grammar.Expression, grammar.LoxError) {
 
 func (parser *Parser) term() (grammar.Expression, grammar.LoxError) {
 	leftExpr, err := parser.factor()
+	if err != nil {
+		return nil, err
+	}
 
 	for parser.matchToken(grammar.MINUS, grammar.PLUS) {
 		operator := parser.lookbehind()
 		rightExpr, err := parser.factor()
+		if err != nil {
+			return nil, err
+		}
 		leftExpr = grammar.BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
-		return leftExpr, err
 	}
 
 	return leftExpr, err
@@ -368,12 +454,17 @@ func (parser *Parser) term() (grammar.Expression, grammar.LoxError) {
 
 func (parser *Parser) factor() (grammar.Expression, grammar.LoxError) {
 	leftExpr, err := parser.unary()
+	if err != nil {
+		return nil, err
+	}
 
 	for parser.matchToken(grammar.SLASH, grammar.STAR) {
 		operator := parser.lookbehind()
 		rightExpr, err := parser.unary()
+		if err != nil {
+			return nil, err
+		}
 		leftExpr = grammar.BinaryExpression{Left: leftExpr, Right: rightExpr, Operator: operator}
-		return leftExpr, err
 	}
 
 	return leftExpr, err
@@ -385,7 +476,47 @@ func (parser *Parser) unary() (grammar.Expression, grammar.LoxError) {
 		rightExpr, err := parser.unary()
 		return grammar.UnaryExpression{Right: rightExpr, Operator: operator}, err
 	}
-	return parser.primary()
+	return parser.call()
+}
+
+func (parser *Parser) call() (grammar.Expression, grammar.LoxError) {
+	expr, err := parser.primary()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		if parser.matchToken(grammar.LEFT_PAREN) {
+			expr, err = parser.finishCall(expr)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			break
+		}
+	}
+
+	return expr, err
+}
+
+func (parser *Parser) finishCall(expr grammar.Expression) (grammar.Expression, grammar.LoxError) {
+	arguments := make([]grammar.Expression, 0)
+
+	if !parser.compareTypes(grammar.RIGHT_PAREN) {
+		for ok := true; ok; ok = parser.matchToken(grammar.COMMA) {
+			if len(arguments) >= 255 {
+				return nil, runtime.RuntimeError{Token: parser.lookahead(), Message: "Can't have more than 255 arguments."}
+			}
+
+			expr, err := parser.expression()
+			if err != nil {
+				return nil, err
+			}
+
+			arguments = append(arguments, expr)
+		}
+	}
+	return grammar.CallExpression{Callee: expr, Paren: parser.lookahead(), Arguments: arguments}, parser.expect(grammar.RIGHT_PAREN, "Expect ')' after argument.")
 }
 
 func (parser *Parser) primary() (grammar.Expression, grammar.LoxError) {

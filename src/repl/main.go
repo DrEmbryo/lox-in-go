@@ -12,6 +12,7 @@ import (
 	"github.com/DrEmbryo/lox/src/grammar"
 	"github.com/DrEmbryo/lox/src/lexer"
 	"github.com/DrEmbryo/lox/src/parser"
+	"github.com/DrEmbryo/lox/src/resolver"
 	"github.com/DrEmbryo/lox/src/runtime"
 	"github.com/DrEmbryo/lox/src/utils"
 )
@@ -64,6 +65,7 @@ func eval(source string, options *flag.FlagSet) {
 	stmts, err := parser.Parse()
 	if err != nil {
 		grammar.LoxError.Print(err)
+		return
 	}
 	if debugOption {
 		printer := utils.AstPrinter{}
@@ -71,7 +73,14 @@ func eval(source string, options *flag.FlagSet) {
 	}
 	env := runtime.Environment{Values: make(map[string]any), Parent: nil}
 	interpreter := runtime.Interpreter{Env: env}
-	errs := interpreter.Interpret(stmts)
+	resolver := resolver.Resolver{Interpreter: interpreter, Scopes: utils.Stack[map[string]bool]{}, Error: make([]grammar.LoxError, 0)}
+	errs := resolver.Resolve(stmts)
+	if len(errs) > 0 {
+		for _, e := range errs {
+			grammar.LoxError.Print(e)
+		}
+	}
+	errs = interpreter.Interpret(stmts)
 	if len(errs) > 0 {
 		for _, e := range errs {
 			grammar.LoxError.Print(e)

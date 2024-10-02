@@ -35,3 +35,9 @@ type LogicExpression struct {
 	Operator Token
 	Right    Expression
 }
+
+type CallExpression struct {
+	Callee    Expression
+	Paren     Token
+	Arguments []Expression
+}

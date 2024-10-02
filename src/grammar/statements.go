@@ -15,6 +15,17 @@ type VariableDeclarationStatement struct {
 	Initializer Expression
 }
 
+type FunctionDeclarationStatement struct {
+	Name   Token
+	Params []Token
+	Body   BlockScopeStatement
+}
+
+type ReturnStatement struct {
+	Keyword    Token
+	Expression Expression
+}
+
 type BlockScopeStatement struct {
 	Statements []Statement
 }
