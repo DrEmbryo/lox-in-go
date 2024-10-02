@@ -36,10 +36,7 @@ func (s *Stack[T]) IsEmpty() bool {
 }
 
 func (s *Stack[T]) Peek() (T, error) {
-	if s.IsEmpty() {
-		return *new(T), StackError{Message: "Stack is empty"}
-	}
-	return s.items[len(s.items)-1], nil
+	return s.Get(s.Len() - 1)
 }
 
 func (s *Stack[T]) Len() int {
