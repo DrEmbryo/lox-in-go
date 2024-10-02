@@ -78,7 +78,8 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 		return makeTemplateStr(offset, nodeType, token)
 	case grammar.FunctionDeclarationStatement:
 		token := printer.printNode(offset+1, stmtType.Name)
-		return makeTemplateStr(offset, nodeType, token)
+		body := printer.printNode(offset+1, stmtType.Body)
+		return makeTemplateStr(offset, nodeType, token, body)
 	case grammar.LogicExpression:
 		leftExpr := printer.printNode(offset+1, stmtType.Left)
 		operator := printer.printNode(offset+1, stmtType.Operator)
