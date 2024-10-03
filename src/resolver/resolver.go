@@ -1,4 +1,3 @@
-// 186
 package resolver
 
 import (
