@@ -317,6 +317,8 @@ func (parser *Parser) declaration() (grammar.Statement, grammar.LoxError) {
 	switch {
 	case parser.matchToken(grammar.FUNC):
 		return parser.functionDeclaration("function")
+	case parser.matchToken(grammar.CLASS):
+		return parser.classDeclaration()
 	case parser.matchToken(grammar.VAR):
 		return parser.variableDeclaration()
 	default:
@@ -373,6 +375,30 @@ func (parser *Parser) functionDeclaration(kind string) (grammar.Statement, gramm
 	}
 	return grammar.FunctionDeclarationStatement{Name: name, Params: parameters, Body: body}, err
 
+}
+
+func (parser *Parser) classDeclaration() (grammar.Statement, grammar.LoxError) {
+	err := parser.expect(grammar.IDENTIFIER, "Expect class name.")
+	if err != nil {
+		return nil, err
+	}
+
+	name := parser.lookbehind()
+	err = parser.expect(grammar.LEFT_BRACE, "Expect '{' after class name.")
+	if err != nil {
+		return nil, err
+	}
+
+	methods := make([]grammar.FunctionDeclarationStatement, 0)
+	for !parser.compareTypes(grammar.RIGHT_BRACE) {
+		method, err := parser.functionDeclaration("method")
+		if err != nil {
+			return nil, err
+		}
+		methods = append(methods, method.(grammar.FunctionDeclarationStatement))
+	}
+
+	return grammar.ClassDeclarationStatement{Name: name, Methods: methods}, nil
 }
 
 func (parser *Parser) variableDeclaration() (grammar.Statement, grammar.LoxError) {

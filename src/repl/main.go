@@ -77,7 +77,7 @@ func eval(source string, options *flag.FlagSet) {
 		printer.Print(stmts)
 	}
 	env := runtime.Environment{Values: make(map[string]any), Parent: nil}
-	interpreter := runtime.Interpreter{Env: env}
+	interpreter := runtime.Interpreter{Env: env, LocalEnv: make(map[any]int)}
 	resolver := resolver.Resolver{Interpreter: interpreter, Scopes: utils.Stack[map[string]bool]{}, Error: make([]grammar.LoxError, 0)}
 	errs := resolver.Resolve(stmts)
 	if len(errs) > 0 {
