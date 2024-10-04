@@ -56,6 +56,9 @@ func eval(source string, options *flag.FlagSet) {
 		for _, e := range lexErrs {
 			grammar.LoxError.Print(e)
 		}
+		if !debugOption {
+			return
+		}
 	}
 	if debugOption {
 		printer := utils.TokenPrinter{}
@@ -65,19 +68,24 @@ func eval(source string, options *flag.FlagSet) {
 	stmts, err := parser.Parse()
 	if err != nil {
 		grammar.LoxError.Print(err)
-		return
+		if !debugOption {
+			return
+		}
 	}
 	if debugOption {
 		printer := utils.AstPrinter{}
 		printer.Print(stmts)
 	}
 	env := runtime.Environment{Values: make(map[string]any), Parent: nil}
-	interpreter := runtime.Interpreter{Env: env}
+	interpreter := runtime.Interpreter{Env: env, LocalEnv: make(map[any]int)}
 	resolver := resolver.Resolver{Interpreter: interpreter, Scopes: utils.Stack[map[string]bool]{}, Error: make([]grammar.LoxError, 0)}
 	errs := resolver.Resolve(stmts)
 	if len(errs) > 0 {
 		for _, e := range errs {
 			grammar.LoxError.Print(e)
+		}
+		if !debugOption {
+			return
 		}
 	}
 	errs = interpreter.Interpret(stmts)

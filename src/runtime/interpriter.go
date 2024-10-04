@@ -10,7 +10,7 @@ import (
 type Interpreter struct {
 	Env       Environment
 	globalEnv *Environment
-	localEnv  map[any]int
+	LocalEnv  map[any]int
 }
 
 func (interpreter *Interpreter) literalExpr(expr grammar.LiteralExpression) (any, grammar.LoxError) {
@@ -37,7 +37,7 @@ func (interpreter *Interpreter) unaryExpr(expr grammar.UnaryExpression) (any, gr
 		}
 		return right.(float64) * -1, nil
 	}
-	return nil, nil
+	return nil, err
 }
 
 func (interpreter *Interpreter) binaryExpr(expr grammar.BinaryExpression) (any, grammar.LoxError) {
@@ -116,8 +116,7 @@ func (interpreter *Interpreter) binaryExpr(expr grammar.BinaryExpression) (any, 
 	case grammar.EQUAL_EQUAL:
 		return checkValueEquality(left, right), nil
 	}
-
-	return nil, nil
+	return nil, err
 }
 
 func (interpreter *Interpreter) logicalExpr(expr grammar.LogicExpression) (any, grammar.LoxError) {
@@ -133,7 +132,6 @@ func (interpreter *Interpreter) logicalExpr(expr grammar.LogicExpression) (any, 
 			return left, nil
 		}
 	}
-
 	return interpreter.evaluate(expr.Right)
 }
 
@@ -189,9 +187,8 @@ func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.
 		return interpreter.literalExpr(exprType)
 	default:
 		fmt.Printf("%T", exprType)
+		return nil, nil
 	}
-
-	return nil, nil
 }
 
 func (interpreter *Interpreter) printStmt(stmt grammar.PrintStatement) grammar.LoxError {
@@ -200,15 +197,12 @@ func (interpreter *Interpreter) printStmt(stmt grammar.PrintStatement) grammar.L
 		return err
 	}
 	fmt.Println(value)
-	return nil
+	return err
 }
 
 func (interpreter *Interpreter) expressionStmt(stmt grammar.ExpressionStatement) grammar.LoxError {
 	_, err := interpreter.evaluate(stmt.Expression)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (interpreter *Interpreter) whileStmt(stmt grammar.WhileLoopStatement) grammar.LoxError {
@@ -243,16 +237,24 @@ func (interpreter *Interpreter) execute(stmt grammar.Statement) (any, grammar.Lo
 		return nil, interpreter.whileStmt(stmtType)
 	case grammar.FunctionDeclarationStatement:
 		return interpreter.functionDeclarationStmt(stmtType)
+	case grammar.ClassDeclarationStatement:
+		return interpreter.classDeclarationStmt(stmtType)
 	case grammar.ReturnStatement:
 		return interpreter.returnStmt(stmtType)
+	default:
+		return nil, nil
 	}
-
-	return nil, nil
 }
 
 func (interpreter *Interpreter) functionDeclarationStmt(stmt grammar.FunctionDeclarationStatement) (any, grammar.LoxError) {
 	function := LoxFunction{Declaration: stmt, Closure: interpreter.Env}
 	interpreter.Env.defineEnvValue(stmt.Name, function)
+	return nil, nil
+}
+
+func (interpreter *Interpreter) classDeclarationStmt(stmt grammar.ClassDeclarationStatement) (any, grammar.LoxError) {
+	class := LoxClass{Name: stmt.Name}
+	interpreter.Env.defineEnvValue(stmt.Name, class)
 	return nil, nil
 }
 
@@ -328,7 +330,7 @@ func (interpreter *Interpreter) varExpr(expr grammar.VariableDeclaration) (any, 
 }
 
 func (interpreter *Interpreter) lookUpVariable(name grammar.Token, expr grammar.Expression) (any, grammar.LoxError) {
-	distance, ok := interpreter.localEnv[expr]
+	distance, ok := interpreter.LocalEnv[expr]
 	if !ok {
 		return interpreter.Env.getEnvValueAt(distance, name)
 	}
@@ -340,13 +342,13 @@ func (interpreter *Interpreter) assignmentExpr(expr grammar.AssignmentExpression
 	if err != nil {
 		return nil, err
 	}
-	distance, ok := interpreter.localEnv[expr]
+	distance, ok := interpreter.LocalEnv[expr]
 	if !ok {
 		interpreter.Env.assignEnvValueAt(distance, expr.Name, value)
 	} else {
 		interpreter.globalEnv.assignEnvValue(expr.Name, value)
 	}
-	return value, nil
+	return value, err
 }
 
 func checkTypeEquality(a, b any) bool {
@@ -386,5 +388,5 @@ func checkNumericOperands(operator grammar.Token, left any, right any) grammar.L
 }
 
 func (interpreter *Interpreter) Resolve(expr grammar.Expression, depth int) {
-	interpreter.localEnv[expr] = depth
+	interpreter.LocalEnv[expr] = depth
 }

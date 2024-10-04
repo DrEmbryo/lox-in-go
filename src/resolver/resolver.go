@@ -1,4 +1,3 @@
-// 186
 package resolver
 
 import (
@@ -9,10 +8,16 @@ import (
 	"github.com/DrEmbryo/lox/src/utils"
 )
 
+const (
+	NONE = iota
+	FUNCTION
+)
+
 type Resolver struct {
-	Interpreter runtime.Interpreter
-	Scopes      utils.Stack[map[string]bool]
-	Error       []grammar.LoxError
+	Interpreter     runtime.Interpreter
+	Scopes          utils.Stack[map[string]bool]
+	Error           []grammar.LoxError
+	CurrentFunction int
 }
 
 func (resolver *Resolver) beginScope() {
@@ -69,6 +74,8 @@ func (resolver *Resolver) resolveStmt(stmt grammar.Statement) grammar.LoxError {
 		return resolver.resolveVarStmt(stmtType)
 	case grammar.FunctionDeclarationStatement:
 		return resolver.resolveFunctionStmt(stmtType)
+	case grammar.ClassDeclarationStatement:
+		return resolver.resolveClassStmt(stmtType)
 	case grammar.ExpressionStatement:
 		return resolver.resolveExpressionStmt(stmtType)
 	case grammar.ConditionalStatement:
@@ -103,17 +110,19 @@ func (resolver *Resolver) resolveVarStmt(stmt grammar.VariableDeclarationStateme
 		}
 	}
 	resolver.define(stmt.Name)
-	return nil
+	return err
 }
 
 func (resolver *Resolver) resolveFunctionStmt(stmt grammar.FunctionDeclarationStatement) grammar.LoxError {
-	resolver.declare(stmt.Name)
+	err := resolver.declare(stmt.Name)
 	resolver.define(stmt.Name)
-	resolver.resolveFunction(stmt)
-	return nil
+	resolver.resolveFunction(stmt, FUNCTION)
+	return err
 }
 
-func (resolver *Resolver) resolveFunction(function grammar.FunctionDeclarationStatement) grammar.LoxError {
+func (resolver *Resolver) resolveFunction(function grammar.FunctionDeclarationStatement, functionType int) grammar.LoxError {
+	enclosingFunction := resolver.CurrentFunction
+	resolver.CurrentFunction = functionType
 	resolver.beginScope()
 	for _, param := range function.Params {
 		err := resolver.declare(param)
@@ -124,7 +133,14 @@ func (resolver *Resolver) resolveFunction(function grammar.FunctionDeclarationSt
 	}
 	resolver.resolveStmt(function.Body)
 	resolver.endScope()
+	resolver.CurrentFunction = enclosingFunction
 	return nil
+}
+
+func (resolver *Resolver) resolveClassStmt(class grammar.ClassDeclarationStatement) grammar.LoxError {
+	err := resolver.declare(class.Name)
+	resolver.define(class.Name)
+	return err
 }
 
 func (resolver *Resolver) resolveExpressionStmt(expr grammar.ExpressionStatement) grammar.LoxError {
@@ -151,6 +167,10 @@ func (resolver *Resolver) resolvePrintStmt(stmt grammar.PrintStatement) grammar.
 }
 
 func (resolver *Resolver) resolveReturnStmt(stmt grammar.ReturnStatement) grammar.LoxError {
+	if resolver.CurrentFunction == NONE {
+		return ResolverError{Token: stmt.Keyword, Message: "Can't return from top-level code."}
+	}
+
 	if stmt.Expression != nil {
 		return resolver.resolveExpr(stmt.Expression)
 	}

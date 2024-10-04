@@ -21,6 +21,11 @@ type FunctionDeclarationStatement struct {
 	Body   BlockScopeStatement
 }
 
+type ClassDeclarationStatement struct {
+	Name    Token
+	Methods []FunctionDeclarationStatement
+}
+
 type ReturnStatement struct {
 	Keyword    Token
 	Expression Expression
