@@ -147,6 +147,8 @@ func (interpreter *Interpreter) callExpr(expr grammar.CallExpression) (any, gram
 		function = &calleeType
 	case NativeCall:
 		function = &calleeType
+	case LoxClass:
+		function = &calleeType
 	default:
 		return nil, RuntimeError{Token: expr.Paren, Message: "Calls available only for functions and classes"}
 	}
@@ -196,7 +198,18 @@ func (interpreter *Interpreter) printStmt(stmt grammar.PrintStatement) grammar.L
 	if err != nil {
 		return err
 	}
-	fmt.Println(value)
+
+	switch valueType := value.(type) {
+	case LoxClassInstance:
+		fmt.Println(valueType.ToString())
+	case LoxClass:
+		fmt.Println(valueType.ToString())
+	case LoxFunction:
+		fmt.Println(valueType.ToString())
+	default:
+		fmt.Println(valueType)
+	}
+
 	return err
 }
 
