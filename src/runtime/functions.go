@@ -26,5 +26,5 @@ func (function *LoxFunction) GetAirity() int {
 }
 
 func (function *LoxFunction) ToString() string {
-	return fmt.Sprintf("<fn  %v>", function.Declaration.Name.Lexeme)
+	return fmt.Sprintf("<fn %v>", function.Declaration.Name.Lexeme)
 }

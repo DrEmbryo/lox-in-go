@@ -53,7 +53,9 @@ func (resolver *Resolver) define(name grammar.Token) {
 }
 
 func (resolver *Resolver) Resolve(statements []grammar.Statement) []grammar.LoxError {
+	resolver.beginScope()
 	resolver.resolveStmts(statements)
+	resolver.endScope()
 	return resolver.Error
 }
 
