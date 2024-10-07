@@ -373,8 +373,8 @@ func (parser *Parser) functionDeclaration(kind string) (grammar.Statement, gramm
 	if !ok {
 		return nil, ParserError{Message: fmt.Sprintf("Unidentified parser type cast of block statement %T", body)}
 	}
-	return grammar.FunctionDeclarationStatement{Name: name, Params: parameters, Body: body}, err
 
+	return grammar.FunctionDeclarationStatement{Name: name, Params: parameters, Body: body}, err
 }
 
 func (parser *Parser) classDeclaration() (grammar.Statement, grammar.LoxError) {
@@ -398,7 +398,7 @@ func (parser *Parser) classDeclaration() (grammar.Statement, grammar.LoxError) {
 		methods = append(methods, method.(grammar.FunctionDeclarationStatement))
 	}
 
-	return grammar.ClassDeclarationStatement{Name: name, Methods: methods}, nil
+	return grammar.ClassDeclarationStatement{Name: name, Methods: methods}, parser.expect(grammar.RIGHT_BRACE, "Expect '}' after class body.")
 }
 
 func (parser *Parser) variableDeclaration() (grammar.Statement, grammar.LoxError) {
@@ -422,7 +422,7 @@ func (parser *Parser) variableDeclaration() (grammar.Statement, grammar.LoxError
 		return nil, err
 	}
 
-	return grammar.VariableDeclarationStatement{Name: name, Initializer: initializer}, nil
+	return grammar.VariableDeclarationStatement{Name: name, Initializer: initializer}, err
 }
 
 func (parser *Parser) equality() (grammar.Expression, grammar.LoxError) {
