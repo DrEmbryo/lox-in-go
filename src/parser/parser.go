@@ -274,6 +274,8 @@ func (parser *Parser) assignment() (grammar.Expression, grammar.LoxError) {
 		switch exprType := expr.(type) {
 		case grammar.VariableDeclaration:
 			return grammar.AssignmentExpression{Name: exprType.Name, Value: value}, nil
+		case grammar.PropertyAssignmentExpression:
+			return grammar.PropertyAssignmentExpression{Object: exprType.Object, Name: exprType.Name, Value: value}, nil
 		default:
 			return nil, ParserError{Token: equal, Message: "Invalid assignment target.", Position: parser.current}
 		}
@@ -517,6 +519,9 @@ func (parser *Parser) call() (grammar.Expression, grammar.LoxError) {
 			if err != nil {
 				return nil, err
 			}
+		} else if parser.matchToken(grammar.DOT) {
+			err = parser.expect(grammar.IDENTIFIER, "Expected property name after '.'")
+			expr = grammar.PropertyAccessExpression{Name: parser.lookbehind(), Object: expr}
 		} else {
 			break
 		}

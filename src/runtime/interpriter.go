@@ -169,6 +169,41 @@ func (interpreter *Interpreter) callExpr(expr grammar.CallExpression) (any, gram
 	return function.Call(*interpreter, arguments)
 }
 
+func (interpreter *Interpreter) propAccessExpr(expr grammar.PropertyAccessExpression) (any, grammar.LoxError) {
+	object, err := interpreter.evaluate(expr.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	classInstance, ok := object.(LoxClassInstance)
+	if ok {
+		return classInstance.GetProperty(expr.Name)
+	}
+
+	return nil, RuntimeError{Token: expr.Name, Message: "Only instances have prooperties."}
+}
+
+func (interpreter *Interpreter) PropAssignmentExpr(expr grammar.PropertyAssignmentExpression) (any, grammar.LoxError) {
+	object, err := interpreter.evaluate(expr.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := object.(LoxClassInstance); !ok {
+		return nil, RuntimeError{Token: expr.Name, Message: "Only instances have fiellds."}
+	}
+
+	value, err := interpreter.evaluate(expr.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	if classInstance, ok := value.(LoxClassInstance); ok {
+		return classInstance.SetProperty(expr.Name, value), nil
+	}
+	return value, err
+}
+
 func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.LoxError) {
 	switch exprType := expr.(type) {
 	case grammar.GroupingExpression:
@@ -185,6 +220,8 @@ func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.
 		return interpreter.logicalExpr(exprType)
 	case grammar.CallExpression:
 		return interpreter.callExpr(exprType)
+	case grammar.PropertyAccessExpression:
+		return interpreter.propAccessExpr(exprType)
 	case grammar.LiteralExpression:
 		return interpreter.literalExpr(exprType)
 	default:
@@ -266,7 +303,14 @@ func (interpreter *Interpreter) functionDeclarationStmt(stmt grammar.FunctionDec
 }
 
 func (interpreter *Interpreter) classDeclarationStmt(stmt grammar.ClassDeclarationStatement) (any, grammar.LoxError) {
-	class := LoxClass{Name: stmt.Name}
+	methods := make(map[string]LoxFunction)
+
+	for _, method := range stmt.Methods {
+		lookup := fmt.Sprintf("%s", method.Name.Lexeme)
+		methods[lookup] = LoxFunction{Closure: interpreter.Env, Declaration: method}
+	}
+
+	class := LoxClass{Name: stmt.Name, Methods: methods, Fields: make(map[any]any)}
 	interpreter.Env.defineEnvValue(stmt.Name, class)
 	return nil, nil
 }

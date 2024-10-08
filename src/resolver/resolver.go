@@ -11,6 +11,7 @@ import (
 const (
 	NONE = iota
 	FUNCTION
+	METHOD
 )
 
 type Resolver struct {
@@ -142,6 +143,12 @@ func (resolver *Resolver) resolveFunction(function grammar.FunctionDeclarationSt
 func (resolver *Resolver) resolveClassStmt(class grammar.ClassDeclarationStatement) grammar.LoxError {
 	err := resolver.declare(class.Name)
 	resolver.define(class.Name)
+
+	for _, method := range class.Methods {
+		declaration := METHOD
+		resolver.resolveFunction(method, declaration)
+	}
+
 	return err
 }
 
@@ -197,6 +204,10 @@ func (resolver *Resolver) resolveExpr(expr grammar.Expression) grammar.LoxError 
 		return resolver.resolveBinaryExpr(exprType)
 	case grammar.CallExpression:
 		return resolver.resolveCallExpr(exprType)
+	case grammar.PropertyAccessExpression:
+		return resolver.propAccessExpr(exprType)
+	case grammar.PropertyAssignmentExpression:
+		return resolver.propAssignmentExpr(exprType)
 	case grammar.GroupingExpression:
 		return resolver.resolveGroupExpr(exprType)
 	case grammar.LiteralExpression:
@@ -206,6 +217,20 @@ func (resolver *Resolver) resolveExpr(expr grammar.Expression) grammar.LoxError 
 	default:
 		return nil
 	}
+}
+
+func (resolver *Resolver) propAssignmentExpr(expr grammar.PropertyAssignmentExpression) grammar.LoxError {
+	err := resolver.resolveExpr(expr.Value)
+	if err != nil {
+		return err
+	}
+	err = resolver.resolveExpr(expr.Object)
+	return err
+}
+
+func (resolver *Resolver) propAccessExpr(expr grammar.PropertyAccessExpression) grammar.LoxError {
+	resolver.resolveExpr(expr)
+	return nil
 }
 
 func (resolver *Resolver) resolveVarExpr(expr grammar.VariableDeclaration) grammar.LoxError {
