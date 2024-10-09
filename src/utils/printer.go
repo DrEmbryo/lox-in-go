@@ -52,6 +52,14 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 		thenBranch := printer.printNode(offset+1, stmtType.ThenBranch)
 		elseBranch := printer.printNode(offset+1, stmtType.ElseBranch)
 		return makeTemplateStr(offset, nodeType, condition, thenBranch, elseBranch)
+	case grammar.ClassDeclarationStatement:
+		className := printer.printNode(offset+1, stmtType.Name)
+		var builder strings.Builder
+		for _, method := range stmtType.Methods {
+			builder.WriteString(printer.printNode(offset+1, method))
+		}
+		methods := builder.String()
+		return makeTemplateStr(offset, nodeType, className, methods)
 	case []grammar.Statement:
 		var builder strings.Builder
 		for _, statement := range stmtType {
@@ -97,6 +105,16 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 		expr := printer.printNode(offset+1, stmtType.Paren)
 		args := printer.printNode(offset+1, stmtType.Arguments)
 		return makeTemplateStr(offset, nodeType, callee, expr, args)
+	case grammar.PropertyAccessExpression:
+		object := printer.printNode(offset+1, stmtType.Object)
+		return makeTemplateStr(offset, nodeType, object)
+	case grammar.PropertyAssignmentExpression:
+		object := printer.printNode(offset+1, stmtType.Object)
+		value := printer.printNode(offset+1, stmtType.Value)
+		return makeTemplateStr(offset, nodeType, object, value)
+	case grammar.SelfReferenceExpression:
+		keyword := printer.printNode(offset+1, stmtType.Keyword)
+		return makeTemplateStr(offset, nodeType, keyword)
 	default:
 		return nodeType
 	}
