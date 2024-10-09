@@ -274,7 +274,7 @@ func (parser *Parser) assignment() (grammar.Expression, grammar.LoxError) {
 		switch exprType := expr.(type) {
 		case grammar.VariableDeclaration:
 			return grammar.AssignmentExpression{Name: exprType.Name, Value: value}, nil
-		case grammar.PropertyAssignmentExpression:
+		case grammar.PropertyAccessExpression:
 			return grammar.PropertyAssignmentExpression{Object: exprType.Object, Name: exprType.Name, Value: value}, nil
 		default:
 			return nil, ParserError{Token: equal, Message: "Invalid assignment target.", Position: parser.current}
@@ -560,6 +560,8 @@ func (parser *Parser) primary() (grammar.Expression, grammar.LoxError) {
 		return grammar.LiteralExpression{Literal: nil}, nil
 	case parser.matchToken(grammar.NUMBER, grammar.STRING):
 		return grammar.LiteralExpression{Literal: parser.lookbehind().Lexeme}, nil
+	case parser.matchToken(grammar.THIS):
+		return grammar.SelfReferenceExpression{Keyword: parser.lookbehind()}, nil
 	case parser.matchToken(grammar.IDENTIFIER):
 		return grammar.VariableDeclaration{Name: parser.lookbehind()}, nil
 	case parser.matchToken(grammar.LEFT_PAREN):

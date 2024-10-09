@@ -43,7 +43,8 @@ func (instance *LoxClassInstance) GetProperty(name grammar.Token) (any, grammar.
 	}
 
 	if method := instance.Class.FindMethod(lookup); method != nil {
-		return method, nil
+		m, _ := method.(LoxFunction)
+		return m.Bind(instance), nil
 	}
 
 	return nil, RuntimeError{Token: name, Message: fmt.Sprintf("Undefined property '%v'.", name.Lexeme)}

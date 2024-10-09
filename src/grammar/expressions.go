@@ -52,3 +52,7 @@ type PropertyAssignmentExpression struct {
 	Value  Expression
 	Name   Token
 }
+
+type SelfReferenceExpression struct {
+	Keyword Token
+}

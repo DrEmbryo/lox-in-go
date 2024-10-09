@@ -25,6 +25,14 @@ func (function *LoxFunction) GetAirity() int {
 	return len(function.Declaration.Params)
 }
 
+func (function *LoxFunction) Bind(instance *LoxClassInstance) LoxFunction {
+	env := function.Closure
+
+	env.defineEnvValue(grammar.Token{TokenType: grammar.THIS, Lexeme: "this"}, instance)
+
+	return LoxFunction{Declaration: function.Declaration, Closure: env}
+}
+
 func (function *LoxFunction) ToString() string {
 	return fmt.Sprintf("<fn %v>", function.Declaration.Name.Lexeme)
 }

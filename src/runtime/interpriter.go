@@ -183,7 +183,7 @@ func (interpreter *Interpreter) propAccessExpr(expr grammar.PropertyAccessExpres
 	return nil, RuntimeError{Token: expr.Name, Message: "Only instances have prooperties."}
 }
 
-func (interpreter *Interpreter) PropAssignmentExpr(expr grammar.PropertyAssignmentExpression) (any, grammar.LoxError) {
+func (interpreter *Interpreter) propAssignmentExpr(expr grammar.PropertyAssignmentExpression) (any, grammar.LoxError) {
 	object, err := interpreter.evaluate(expr.Object)
 	if err != nil {
 		return nil, err
@@ -198,10 +198,14 @@ func (interpreter *Interpreter) PropAssignmentExpr(expr grammar.PropertyAssignme
 		return nil, err
 	}
 
-	if classInstance, ok := value.(LoxClassInstance); ok {
+	if classInstance, ok := object.(LoxClassInstance); ok {
 		return classInstance.SetProperty(expr.Name, value), nil
 	}
 	return value, err
+}
+
+func (interpreter *Interpreter) selfReferenceExpr(expr grammar.SelfReferenceExpression) (any, grammar.LoxError) {
+	return interpreter.lookUpVariable(expr.Keyword, expr)
 }
 
 func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.LoxError) {
@@ -222,6 +226,10 @@ func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.
 		return interpreter.callExpr(exprType)
 	case grammar.PropertyAccessExpression:
 		return interpreter.propAccessExpr(exprType)
+	case grammar.PropertyAssignmentExpression:
+		return interpreter.propAssignmentExpr(exprType)
+	case grammar.SelfReferenceExpression:
+		return interpreter.selfReferenceExpr(exprType)
 	case grammar.LiteralExpression:
 		return interpreter.literalExpr(exprType)
 	default:

@@ -12,6 +12,7 @@ const (
 	NONE = iota
 	FUNCTION
 	METHOD
+	CLASS
 )
 
 type Resolver struct {
@@ -19,6 +20,7 @@ type Resolver struct {
 	Scopes          utils.Stack[map[string]bool]
 	Error           []grammar.LoxError
 	CurrentFunction int
+	CurrentClass    int
 }
 
 func (resolver *Resolver) beginScope() {
@@ -141,14 +143,25 @@ func (resolver *Resolver) resolveFunction(function grammar.FunctionDeclarationSt
 }
 
 func (resolver *Resolver) resolveClassStmt(class grammar.ClassDeclarationStatement) grammar.LoxError {
+	enclosingClass := resolver.CurrentClass
+	resolver.CurrentClass = CLASS
 	err := resolver.declare(class.Name)
+	if err != nil {
+		return err
+	}
 	resolver.define(class.Name)
-
+	resolver.beginScope()
+	scope, stackErr := resolver.Scopes.Peek()
+	if stackErr != nil {
+		return ResolverError{Token: class.Name, Message: fmt.Sprint(stackErr)}
+	}
+	scope["this"] = true
 	for _, method := range class.Methods {
 		declaration := METHOD
 		resolver.resolveFunction(method, declaration)
 	}
-
+	resolver.endScope()
+	resolver.CurrentClass = enclosingClass
 	return err
 }
 
@@ -208,6 +221,8 @@ func (resolver *Resolver) resolveExpr(expr grammar.Expression) grammar.LoxError 
 		return resolver.propAccessExpr(exprType)
 	case grammar.PropertyAssignmentExpression:
 		return resolver.propAssignmentExpr(exprType)
+	case grammar.SelfReferenceExpression:
+		return resolver.selfReferenceExpr(exprType)
 	case grammar.GroupingExpression:
 		return resolver.resolveGroupExpr(exprType)
 	case grammar.LiteralExpression:
@@ -217,6 +232,13 @@ func (resolver *Resolver) resolveExpr(expr grammar.Expression) grammar.LoxError 
 	default:
 		return nil
 	}
+}
+
+func (resolver *Resolver) selfReferenceExpr(expr grammar.SelfReferenceExpression) grammar.LoxError {
+	if resolver.CurrentClass == NONE {
+		return runtime.RuntimeError{Token: expr.Keyword, Message: "Can't use 'this' outside of a class"}
+	}
+	return resolver.resolveLocal(expr, expr.Keyword)
 }
 
 func (resolver *Resolver) propAssignmentExpr(expr grammar.PropertyAssignmentExpression) grammar.LoxError {
@@ -229,8 +251,7 @@ func (resolver *Resolver) propAssignmentExpr(expr grammar.PropertyAssignmentExpr
 }
 
 func (resolver *Resolver) propAccessExpr(expr grammar.PropertyAccessExpression) grammar.LoxError {
-	resolver.resolveExpr(expr)
-	return nil
+	return resolver.resolveExpr(expr.Object)
 }
 
 func (resolver *Resolver) resolveVarExpr(expr grammar.VariableDeclaration) grammar.LoxError {
