@@ -175,8 +175,7 @@ func (interpreter *Interpreter) propAccessExpr(expr grammar.PropertyAccessExpres
 		return nil, err
 	}
 
-	classInstance, ok := object.(LoxClassInstance)
-	if ok {
+	if classInstance, ok := object.(LoxClassInstance); ok {
 		return classInstance.GetProperty(expr.Name)
 	}
 
@@ -305,21 +304,20 @@ func (interpreter *Interpreter) execute(stmt grammar.Statement) (any, grammar.Lo
 }
 
 func (interpreter *Interpreter) functionDeclarationStmt(stmt grammar.FunctionDeclarationStatement) (any, grammar.LoxError) {
-	function := LoxFunction{Declaration: stmt, Closure: interpreter.Env}
+	function := LoxFunction{Declaration: stmt, Closure: &interpreter.Env, Initializer: false}
 	interpreter.Env.defineEnvValue(stmt.Name, function)
 	return nil, nil
 }
 
 func (interpreter *Interpreter) classDeclarationStmt(stmt grammar.ClassDeclarationStatement) (any, grammar.LoxError) {
+	interpreter.Env.defineEnvValue(stmt.Name, nil)
 	methods := make(map[string]LoxFunction)
 
 	for _, method := range stmt.Methods {
 		lookup := fmt.Sprintf("%s", method.Name.Lexeme)
-		methods[lookup] = LoxFunction{Closure: interpreter.Env, Declaration: method}
+		methods[lookup] = LoxFunction{Closure: &interpreter.Env, Declaration: method, Initializer: lookup == CONSTRUCTOR}
 	}
-
-	class := LoxClass{Name: stmt.Name, Methods: methods, Fields: make(map[any]any)}
-	interpreter.Env.defineEnvValue(stmt.Name, class)
+	interpreter.Env.defineEnvValue(stmt.Name, LoxClass{Name: stmt.Name, Methods: methods, Fields: make(map[any]any)})
 	return nil, nil
 }
 

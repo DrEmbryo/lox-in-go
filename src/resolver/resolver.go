@@ -11,8 +11,9 @@ import (
 const (
 	NONE = iota
 	FUNCTION
-	METHOD
 	CLASS
+	METHOD
+	INITIALIZER
 )
 
 type Resolver struct {
@@ -36,12 +37,12 @@ func (resolver *Resolver) declare(name grammar.Token) grammar.LoxError {
 	if err != nil {
 		return nil
 	}
-	key := name.Lexeme.(string)
-	_, ok := scope[key]
+	lookup := fmt.Sprintf("%s", name.Lexeme)
+	_, ok := scope[lookup]
 	if ok {
 		return ResolverError{Token: name, Message: "Already variable with this name in this scope."}
 	} else {
-		scope[key] = false
+		scope[lookup] = false
 	}
 	return nil
 }
@@ -51,8 +52,8 @@ func (resolver *Resolver) define(name grammar.Token) {
 	if err != nil {
 		return
 	}
-	key := name.Lexeme.(string)
-	scope[key] = true
+	lookup := fmt.Sprintf("%s", name.Lexeme)
+	scope[lookup] = true
 }
 
 func (resolver *Resolver) Resolve(statements []grammar.Statement) []grammar.LoxError {
@@ -158,6 +159,9 @@ func (resolver *Resolver) resolveClassStmt(class grammar.ClassDeclarationStateme
 	scope["this"] = true
 	for _, method := range class.Methods {
 		declaration := METHOD
+		if method.Name.Lexeme == runtime.CONSTRUCTOR {
+			declaration = INITIALIZER
+		}
 		resolver.resolveFunction(method, declaration)
 	}
 	resolver.endScope()
@@ -194,6 +198,9 @@ func (resolver *Resolver) resolveReturnStmt(stmt grammar.ReturnStatement) gramma
 	}
 
 	if stmt.Expression != nil {
+		if resolver.CurrentFunction == INITIALIZER {
+			return ResolverError{Token: stmt.Keyword, Message: "Can't return a value from constructor"}
+		}
 		return resolver.resolveExpr(stmt.Expression)
 	}
 	return nil
@@ -259,8 +266,8 @@ func (resolver *Resolver) resolveVarExpr(expr grammar.VariableDeclaration) gramm
 	if err != nil {
 		return ResolverError{Token: expr.Name, Message: fmt.Sprint(err)}
 	}
-	key := expr.Name.Lexeme.(string)
-	if val, ok := scope[key]; !resolver.Scopes.IsEmpty() && ok && !val {
+	lookup := fmt.Sprintf("%s", expr.Name.Lexeme)
+	if val, ok := scope[lookup]; !resolver.Scopes.IsEmpty() && ok && !val {
 		return ResolverError{Token: expr.Name, Message: "Can't read local variable in its own initializer."}
 	}
 	resolver.resolveLocal(expr, expr.Name)
@@ -273,8 +280,8 @@ func (resolver *Resolver) resolveLocal(expr grammar.Expression, name grammar.Tok
 		if err != nil {
 			return ResolverError{Token: name, Message: fmt.Sprint(err)}
 		}
-		key := name.Lexeme.(string)
-		if _, ok := scope[key]; ok {
+		lookup := fmt.Sprintf("%s", name.Lexeme)
+		if _, ok := scope[lookup]; ok {
 			resolver.Interpreter.Resolve(expr, resolver.Scopes.Len()-1-i)
 			return nil
 		}
