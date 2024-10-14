@@ -23,6 +23,7 @@ type FunctionDeclarationStatement struct {
 
 type ClassDeclarationStatement struct {
 	Name    Token
+	Super   Expression
 	Methods []FunctionDeclarationStatement
 }
 

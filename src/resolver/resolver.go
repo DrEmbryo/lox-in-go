@@ -146,11 +146,15 @@ func (resolver *Resolver) resolveFunction(function grammar.FunctionDeclarationSt
 func (resolver *Resolver) resolveClassStmt(class grammar.ClassDeclarationStatement) grammar.LoxError {
 	enclosingClass := resolver.CurrentClass
 	resolver.CurrentClass = CLASS
-	err := resolver.declare(class.Name)
-	if err != nil {
-		return err
-	}
+	resolver.declare(class.Name)
 	resolver.define(class.Name)
+	super, ok := class.Super.(grammar.VariableDeclaration)
+	if ok {
+		if class.Name.Lexeme == super.Name.Lexeme {
+			return ResolverError{Token: super.Name, Message: "A class can't inherit from itself."}
+		}
+		resolver.resolveExpr(super)
+	}
 	resolver.beginScope()
 	scope, stackErr := resolver.Scopes.Peek()
 	if stackErr != nil {
@@ -166,7 +170,7 @@ func (resolver *Resolver) resolveClassStmt(class grammar.ClassDeclarationStateme
 	}
 	resolver.endScope()
 	resolver.CurrentClass = enclosingClass
-	return err
+	return nil
 }
 
 func (resolver *Resolver) resolveExpressionStmt(expr grammar.ExpressionStatement) grammar.LoxError {

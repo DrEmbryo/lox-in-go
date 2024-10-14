@@ -380,12 +380,24 @@ func (parser *Parser) functionDeclaration(kind string) (grammar.Statement, gramm
 }
 
 func (parser *Parser) classDeclaration() (grammar.Statement, grammar.LoxError) {
+	var superclass any = nil
 	err := parser.expect(grammar.IDENTIFIER, "Expect class name.")
 	if err != nil {
 		return nil, err
 	}
 
 	name := parser.lookbehind()
+
+	if parser.compareTypes(grammar.LESS) {
+		parser.consume()
+		err := parser.expect(grammar.IDENTIFIER, "Expect supperclass name.")
+		if err != nil {
+			return nil, err
+		}
+		superName := parser.lookbehind()
+		superclass = grammar.VariableDeclaration{Name: superName}
+	}
+
 	err = parser.expect(grammar.LEFT_BRACE, "Expect '{' after class name.")
 	if err != nil {
 		return nil, err
@@ -399,8 +411,7 @@ func (parser *Parser) classDeclaration() (grammar.Statement, grammar.LoxError) {
 		}
 		methods = append(methods, method.(grammar.FunctionDeclarationStatement))
 	}
-
-	return grammar.ClassDeclarationStatement{Name: name, Methods: methods}, parser.expect(grammar.RIGHT_BRACE, "Expect '}' after class body.")
+	return grammar.ClassDeclarationStatement{Name: name, Methods: methods, Super: superclass}, parser.expect(grammar.RIGHT_BRACE, "Expect '}' after class body.")
 }
 
 func (parser *Parser) variableDeclaration() (grammar.Statement, grammar.LoxError) {

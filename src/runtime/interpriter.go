@@ -310,14 +310,28 @@ func (interpreter *Interpreter) functionDeclarationStmt(stmt grammar.FunctionDec
 }
 
 func (interpreter *Interpreter) classDeclarationStmt(stmt grammar.ClassDeclarationStatement) (any, grammar.LoxError) {
+	var superclass any = nil
+	super, ok := stmt.Super.(grammar.VariableDeclaration)
+	if ok {
+		evalSuper, err := interpreter.evaluate(super)
+		if err != nil {
+			return nil, err
+		}
+		_, ok := evalSuper.(LoxClass)
+		if !ok {
+			return nil, RuntimeError{Token: super.Name, Message: "Superclass must be a class."}
+		}
+		superclass = evalSuper
+	}
+
 	interpreter.Env.defineEnvValue(stmt.Name, nil)
 	methods := make(map[string]LoxFunction)
-
 	for _, method := range stmt.Methods {
 		lookup := fmt.Sprintf("%s", method.Name.Lexeme)
 		methods[lookup] = LoxFunction{Closure: &interpreter.Env, Declaration: method, Initializer: lookup == CONSTRUCTOR}
 	}
-	interpreter.Env.defineEnvValue(stmt.Name, LoxClass{Name: stmt.Name, Methods: methods, Fields: make(map[any]any)})
+
+	interpreter.Env.defineEnvValue(stmt.Name, LoxClass{Name: stmt.Name, Methods: methods, Fields: make(map[any]any), Super: superclass})
 	return nil, nil
 }
 

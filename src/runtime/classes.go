@@ -12,6 +12,7 @@ type LoxClass struct {
 	Name    grammar.Token
 	Fields  map[any]any
 	Methods map[string]LoxFunction
+	Super   any
 }
 
 func (class *LoxClass) Call(interpreter Interpreter, args []any) (any, grammar.LoxError) {
@@ -35,6 +36,11 @@ func (class *LoxClass) GetAirity() int {
 func (class *LoxClass) FindMethod(name string) any {
 	if method, ok := class.Methods[name]; ok {
 		return method
+	}
+
+	super, ok := class.Super.(LoxClass)
+	if ok {
+		return super.FindMethod(name)
 	}
 	return nil
 }
