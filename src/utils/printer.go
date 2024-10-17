@@ -115,6 +115,10 @@ func (printer *AstPrinter) printNode(offset int, stmt grammar.Statement) string 
 	case grammar.SelfReferenceExpression:
 		keyword := printer.printNode(offset+1, stmtType.Keyword)
 		return makeTemplateStr(offset, nodeType, keyword)
+	case grammar.BaseClassCallExpression:
+		keyword := printer.printNode(offset+1, stmtType.Keyword)
+		method := printer.printNode(offset+1, stmtType.Method)
+		return makeTemplateStr(offset+1, nodeType, keyword, method)
 	default:
 		return nodeType
 	}

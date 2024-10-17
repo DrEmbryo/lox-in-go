@@ -573,6 +573,17 @@ func (parser *Parser) primary() (grammar.Expression, grammar.LoxError) {
 		return grammar.LiteralExpression{Literal: parser.lookbehind().Lexeme}, nil
 	case parser.matchToken(grammar.THIS):
 		return grammar.SelfReferenceExpression{Keyword: parser.lookbehind()}, nil
+	case parser.matchToken(grammar.SUPER):
+		keyword := parser.lookbehind()
+		err := parser.expect(grammar.DOT, "Expect '.' after 'super'.")
+		if err != nil {
+			return nil, err
+		}
+		err = parser.expect(grammar.IDENTIFIER, "Expect superclass method name.")
+		if err != nil {
+			return nil, err
+		}
+		return grammar.BaseClassCallExpression{Keyword: keyword, Method: parser.lookbehind()}, nil
 	case parser.matchToken(grammar.IDENTIFIER):
 		return grammar.VariableDeclaration{Name: parser.lookbehind()}, nil
 	case parser.matchToken(grammar.LEFT_PAREN):

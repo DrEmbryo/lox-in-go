@@ -56,3 +56,8 @@ type PropertyAssignmentExpression struct {
 type SelfReferenceExpression struct {
 	Keyword Token
 }
+
+type BaseClassCallExpression struct {
+	Keyword Token
+	Method  Token
+}

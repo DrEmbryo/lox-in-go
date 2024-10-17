@@ -207,6 +207,24 @@ func (interpreter *Interpreter) selfReferenceExpr(expr grammar.SelfReferenceExpr
 	return interpreter.lookUpVariable(expr.Keyword, expr)
 }
 
+func (interpreter *Interpreter) baseClassCallExpr(expr grammar.BaseClassCallExpression) (any, grammar.LoxError) {
+	distance := interpreter.LocalEnv[expr]
+	superclass, err := interpreter.Env.getEnvValueAt(distance, grammar.Token{TokenType: grammar.SUPER, Lexeme: "super"})
+	if err != nil {
+		return nil, err
+	}
+	instance, err := interpreter.Env.getEnvValueAt(distance-1, grammar.Token{TokenType: grammar.THIS, Lexeme: "this"})
+	if err != nil {
+		return nil, err
+	}
+	super := superclass.(LoxClass)
+	method, ok := super.FindMethod(fmt.Sprintf("%v", expr.Method.Lexeme)).(LoxFunction)
+	if !ok {
+		return nil, RuntimeError{Token: expr.Keyword, Message: fmt.Sprintf("Undefined property '%v'.", expr.Method.Lexeme)}
+	}
+	return method.Bind(instance.(LoxClassInstance)), nil
+}
+
 func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.LoxError) {
 	switch exprType := expr.(type) {
 	case grammar.GroupingExpression:
@@ -229,6 +247,8 @@ func (interpreter *Interpreter) evaluate(expr grammar.Expression) (any, grammar.
 		return interpreter.propAssignmentExpr(exprType)
 	case grammar.SelfReferenceExpression:
 		return interpreter.selfReferenceExpr(exprType)
+	case grammar.BaseClassCallExpression:
+		return interpreter.baseClassCallExpr(exprType)
 	case grammar.LiteralExpression:
 		return interpreter.literalExpr(exprType)
 	default:
@@ -311,6 +331,7 @@ func (interpreter *Interpreter) functionDeclarationStmt(stmt grammar.FunctionDec
 
 func (interpreter *Interpreter) classDeclarationStmt(stmt grammar.ClassDeclarationStatement) (any, grammar.LoxError) {
 	var superclass any = nil
+	var enclosingEnv Environment
 	super, ok := stmt.Super.(grammar.VariableDeclaration)
 	if ok {
 		evalSuper, err := interpreter.evaluate(super)
@@ -324,6 +345,11 @@ func (interpreter *Interpreter) classDeclarationStmt(stmt grammar.ClassDeclarati
 		superclass = evalSuper
 	}
 
+	if stmt.Super != nil {
+		enclosingEnv = Environment{Parent: interpreter.Env.Parent, Values: interpreter.Env.Values}
+		interpreter.Env.defineEnvValue(grammar.Token{TokenType: grammar.SUPER, Lexeme: "super"}, superclass)
+	}
+
 	interpreter.Env.defineEnvValue(stmt.Name, nil)
 	methods := make(map[string]LoxFunction)
 	for _, method := range stmt.Methods {
@@ -332,6 +358,9 @@ func (interpreter *Interpreter) classDeclarationStmt(stmt grammar.ClassDeclarati
 	}
 
 	interpreter.Env.defineEnvValue(stmt.Name, LoxClass{Name: stmt.Name, Methods: methods, Fields: make(map[any]any), Super: superclass})
+	if stmt.Super != nil {
+		interpreter.Env = enclosingEnv
+	}
 	return nil, nil
 }
 
