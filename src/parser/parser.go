@@ -274,6 +274,8 @@ func (parser *Parser) assignment() (grammar.Expression, grammar.LoxError) {
 		switch exprType := expr.(type) {
 		case grammar.VariableDeclaration:
 			return grammar.AssignmentExpression{Name: exprType.Name, Value: value}, nil
+		case grammar.PropertyAccessExpression:
+			return grammar.PropertyAssignmentExpression{Object: exprType.Object, Name: exprType.Name, Value: value}, nil
 		default:
 			return nil, ParserError{Token: equal, Message: "Invalid assignment target.", Position: parser.current}
 		}
@@ -378,12 +380,24 @@ func (parser *Parser) functionDeclaration(kind string) (grammar.Statement, gramm
 }
 
 func (parser *Parser) classDeclaration() (grammar.Statement, grammar.LoxError) {
+	var superclass any = nil
 	err := parser.expect(grammar.IDENTIFIER, "Expect class name.")
 	if err != nil {
 		return nil, err
 	}
 
 	name := parser.lookbehind()
+
+	if parser.compareTypes(grammar.LESS) {
+		parser.consume()
+		err := parser.expect(grammar.IDENTIFIER, "Expect supperclass name.")
+		if err != nil {
+			return nil, err
+		}
+		superName := parser.lookbehind()
+		superclass = grammar.VariableDeclaration{Name: superName}
+	}
+
 	err = parser.expect(grammar.LEFT_BRACE, "Expect '{' after class name.")
 	if err != nil {
 		return nil, err
@@ -397,8 +411,7 @@ func (parser *Parser) classDeclaration() (grammar.Statement, grammar.LoxError) {
 		}
 		methods = append(methods, method.(grammar.FunctionDeclarationStatement))
 	}
-
-	return grammar.ClassDeclarationStatement{Name: name, Methods: methods}, parser.expect(grammar.RIGHT_BRACE, "Expect '}' after class body.")
+	return grammar.ClassDeclarationStatement{Name: name, Methods: methods, Super: superclass}, parser.expect(grammar.RIGHT_BRACE, "Expect '}' after class body.")
 }
 
 func (parser *Parser) variableDeclaration() (grammar.Statement, grammar.LoxError) {
@@ -517,6 +530,9 @@ func (parser *Parser) call() (grammar.Expression, grammar.LoxError) {
 			if err != nil {
 				return nil, err
 			}
+		} else if parser.matchToken(grammar.DOT) {
+			err = parser.expect(grammar.IDENTIFIER, "Expected property name after '.'")
+			expr = grammar.PropertyAccessExpression{Name: parser.lookbehind(), Object: expr}
 		} else {
 			break
 		}
@@ -555,6 +571,19 @@ func (parser *Parser) primary() (grammar.Expression, grammar.LoxError) {
 		return grammar.LiteralExpression{Literal: nil}, nil
 	case parser.matchToken(grammar.NUMBER, grammar.STRING):
 		return grammar.LiteralExpression{Literal: parser.lookbehind().Lexeme}, nil
+	case parser.matchToken(grammar.THIS):
+		return grammar.SelfReferenceExpression{Keyword: parser.lookbehind()}, nil
+	case parser.matchToken(grammar.SUPER):
+		keyword := parser.lookbehind()
+		err := parser.expect(grammar.DOT, "Expect '.' after 'super'.")
+		if err != nil {
+			return nil, err
+		}
+		err = parser.expect(grammar.IDENTIFIER, "Expect superclass method name.")
+		if err != nil {
+			return nil, err
+		}
+		return grammar.BaseClassCallExpression{Keyword: keyword, Method: parser.lookbehind()}, nil
 	case parser.matchToken(grammar.IDENTIFIER):
 		return grammar.VariableDeclaration{Name: parser.lookbehind()}, nil
 	case parser.matchToken(grammar.LEFT_PAREN):

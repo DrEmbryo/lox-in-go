@@ -41,3 +41,23 @@ type CallExpression struct {
 	Paren     Token
 	Arguments []Expression
 }
+
+type PropertyAccessExpression struct {
+	Object Expression
+	Name   Token
+}
+
+type PropertyAssignmentExpression struct {
+	Object Expression
+	Value  Expression
+	Name   Token
+}
+
+type SelfReferenceExpression struct {
+	Keyword Token
+}
+
+type BaseClassCallExpression struct {
+	Keyword Token
+	Method  Token
+}
