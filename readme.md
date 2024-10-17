@@ -4,6 +4,25 @@
 
 Recreation of the Lox (jLox) programming language from the well-regarded book "Crafting Interpreters" by Robert Nystrom with usage of Go progtamming language. This project involves both learning and implementing the concepts and techniques required to build a complete interpreter from scratch.
 
+Features implemented:
+ - tokens and lexing
+ - abstract syntax trees
+ - recursive descent parsing
+ - prefix and infix expressions
+ - runtime representation of objects
+ - interpreting code using the Visitor pattern
+ - lexical scope
+ - environment chains for storing variables
+ - control flow
+ - functions with parameters
+ - closures
+ - static variable resolution and error detection
+ - classes
+ - constructors
+ - fields
+ - methods
+ - inheritance
+
 ### Installation option:
 
 - Nix flake:
