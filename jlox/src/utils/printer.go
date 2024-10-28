@@ -6,7 +6,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/DrEmbryo/lox/src/grammar"
+	"github.com/DrEmbryo/jlox/src/grammar"
 )
 
 type AstPrinter struct {

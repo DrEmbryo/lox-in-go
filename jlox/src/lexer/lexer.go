@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/DrEmbryo/lox/src/grammar"
+	"github.com/DrEmbryo/jlox/src/grammar"
 )
 
 type Lexer struct {
