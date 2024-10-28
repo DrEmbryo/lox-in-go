@@ -3,9 +3,9 @@ package resolver
 import (
 	"fmt"
 
-	"github.com/DrEmbryo/lox/src/grammar"
-	"github.com/DrEmbryo/lox/src/runtime"
-	"github.com/DrEmbryo/lox/src/utils"
+	"github.com/DrEmbryo/jlox/src/grammar"
+	"github.com/DrEmbryo/jlox/src/runtime"
+	"github.com/DrEmbryo/jlox/src/utils"
 )
 
 const (

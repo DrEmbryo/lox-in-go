@@ -3,7 +3,7 @@ package resolver
 import (
 	"fmt"
 
-	"github.com/DrEmbryo/lox/src/grammar"
+	"github.com/DrEmbryo/jlox/src/grammar"
 )
 
 type ResolverError struct {
