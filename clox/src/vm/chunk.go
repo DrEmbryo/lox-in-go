@@ -1,11 +1,13 @@
 package vm
 
 const (
-	OP_RETURN = iota
+	OP_CONSTANT = iota
+	OP_RETURN
 )
 
 type Chunk struct {
-	Code []byte
+	Code      []byte
+	Constants ValuePool
 }
 
 func (chunk *Chunk) WriteChunk(b byte) {

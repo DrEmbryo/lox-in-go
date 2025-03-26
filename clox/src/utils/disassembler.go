@@ -19,6 +19,8 @@ func (disassembler *Disassembler) disassembleInstruction(chunk *vm.Chunk, offset
 	fmt.Printf("%04d ", offset)
 	instruction := chunk.Code[offset]
 	switch instruction {
+	case vm.OP_CONSTANT:
+		return disassembler.constantInstruction("OP_CONSTANT", chunk, offset)
 	case vm.OP_RETURN:
 		return disassembler.simpleInstruction("OP_RETURN", offset)
 	default:
@@ -30,4 +32,12 @@ func (disassembler *Disassembler) disassembleInstruction(chunk *vm.Chunk, offset
 func (disassembler *Disassembler) simpleInstruction(name string, offset int) int {
 	fmt.Printf("%s\n", name)
 	return offset + 1
+}
+
+func (disassembler *Disassembler) constantInstruction(name string, chunk *vm.Chunk, offset int) int {
+	constant := chunk.Code[offset+1]
+	fmt.Printf("%s %04d '", name, constant)
+	fmt.Printf("%v", chunk.Constants.Value[constant-1])
+	fmt.Printf("'\n")
+	return offset + 2
 }
