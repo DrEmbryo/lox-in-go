@@ -1,6 +1,8 @@
 package vm
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	INTERPRET_OK = iota
@@ -11,8 +13,9 @@ const (
 const DEBUG_TRACE_EXECUTION = true
 
 type VM struct {
-	Chunk *Chunk
-	Ip    int
+	Chunk        *Chunk
+	Ip           int
+	Disassembler Disassembler
 }
 
 func (vm *VM) Interpret(chunk *Chunk) int {
@@ -31,6 +34,10 @@ func (vm *VM) readConstant() Value {
 
 func (vm *VM) Run() int {
 	for {
+		if DEBUG_TRACE_EXECUTION {
+			vm.Disassembler.disassembleInstruction(*vm.Chunk, vm.Ip)
+		}
+
 		instruction := vm.readByte()
 		switch instruction {
 		case OP_CONSTANT:
