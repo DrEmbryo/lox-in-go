@@ -16,7 +16,11 @@ func (disassembler *Disassembler) DisassembleChunk(chunk *vm.Chunk, name string)
 }
 
 func (disassembler *Disassembler) disassembleInstruction(chunk *vm.Chunk, offset int) int {
-	fmt.Printf("%04d ", offset)
+	if offset > 0 && offset == chunk.Lines[offset-1] {
+		fmt.Print(" | ")
+	} else {
+		fmt.Printf("%04d %d ", offset, chunk.Lines[offset])
+	}
 	instruction := chunk.Code[offset]
 	switch instruction {
 	case vm.OP_CONSTANT:
